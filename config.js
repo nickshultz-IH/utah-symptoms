@@ -34,10 +34,10 @@ window.APP_CONFIG = {
 
     // Default marker icons by Group (domain-agnostic paths)
     iconsByGroup: {
-      "Cobalt":   "assets/map-marker-cobalt.png",
-      "Coral":    "assets/map-marker-coral.png",
-      "Dark Blue":"assets/map-marker-darkblue.png",
-      "Soft Blue":"assets/map-marker-softblue.png"
+      "Cobalt":   "map-marker-cobalt.png",
+      "Coral":    "map-marker-coral.png",
+      "Dark Blue":"amap-marker-darkblue.png",
+      "Soft Blue":"map-marker-softblue.png"
     }
   }
 };
