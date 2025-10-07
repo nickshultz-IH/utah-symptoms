@@ -1,7 +1,7 @@
 window.APP_CONFIG = {
   DATA: {
-    sheetsApiKey: "YOUR_GOOGLE_SHEETS_API_KEY",
-    sheetId: "YOUR_SHEET_ID",
+    sheetsApiKey: "AIzaSyBc6wdW7Dz9P0oq-x6SoOJmySHwEBbfo-I",
+    sheetId: "1cd3VUWQKs3zB68Ji-JXVjJkqyXi87KOoSErjypixD4I",
     sheetRange: "Sheet1!A:Z"
   },
   UI: {
