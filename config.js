@@ -1,5 +1,6 @@
 window.APP_CONFIG = {
   DATA: {
+    sheetsApiKey: "AIzaSyBc6wdW7Dz9P0oq-x6SoOJmySHwEBbfo-I",
     sheetId: "1cd3VUWQKs3zB68Ji-JXVjJkqyXi87KOoSErjypixD4I",
     sheetRange: "Sheet1!A:Z",
   },
