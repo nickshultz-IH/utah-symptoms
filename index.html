@@ -33,6 +33,19 @@
     }
     html,body{height:100%;margin:0;color:var(--dark);font-family:'Source Sans 3',Arial,sans-serif}
     h1,h2,h3,h4,.btn,.chip{font-family:'Inter',Arial,sans-serif}
+    .brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.brand-logo {
+  max-width: 160px;
+  height: auto;
+  display: block;
+}
     .app{height:100vh;display:grid;grid-template-columns:var(--sidebar-w) 1fr}
     .sidebar{height:100%;overflow:hidden;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:#fff}
     .sidebar header{padding:16px 16px 8px;border-bottom:1px solid #e5e7eb;position:relative}
@@ -125,7 +138,10 @@
     <aside id="sidebar" class="sidebar" role="complementary" aria-label="Filters and locations">
       <header>
         <h1 style="display:none;">Intermountain Health</h1>
-        <img src="logo-light.png" alt="Intermountain Health" style="max-width:180px;height:auto" />
+        <div class="brand">
+  <img src="logo-light.png" alt="Intermountain Health" class="brand-logo" />
+</div>
+
         <button class="desk-toggle" aria-label="Hide sidebar" data-state="open" title="Hide sidebar">
           <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
