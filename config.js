@@ -2,12 +2,12 @@
 window.APP_CONFIG = {
   DATA: {
     sheetsApiKey: "AIzaSyBc6wdW7Dz9P0oq-x6SoOJmySHwEBbfo-I",
-    sheetId: "1cd3VUWQKs3zB68Ji-JXVjJkqyXi87KOoSErjypixD4I",
+    sheetId: "1vYe0uLH_G4jE6XI1MATo8JOFvkYn-sGtIYkBpG2XFVE",
     sheetRange: "Sheet1!A:Z"
   },
   UI: {
-    hideControls: false,
-    hideFilters: false,
+    hideControls: true,
+    hideFilters: true,
     clustering: true
   },
   MAP: {
