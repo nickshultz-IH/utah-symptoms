@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Intermountain Health – Map (MapLibre + Sheets)</title>
-  <meta name="description" content="MapLibre GL JS + Google Sheets data + Freshpaint-ready." />
+  <title>Intermountain Health – Map (MapLibre + Sheets + Clusters)</title>
+  <meta name="description" content="MapLibre GL JS + Google Sheets data + clustering + custom icons + Freshpaint-ready." />
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
   <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
 
-  <!-- Your config (must be before our app script) -->
+  <!-- Config -->
   <script src="config.js"></script>
 
   <style>
@@ -50,7 +50,6 @@
 
     .list { overflow: auto; flex: 1; background: #fff; }
 
-    /* Group section (accordion) */
     .group-section { border-top: 1px solid #eee; }
     .group-head {
       display:flex; align-items:center; justify-content:space-between;
@@ -78,7 +77,7 @@
 
     #map { height: 100%; width: 100%; }
 
-    /* MapLibre popup (infowindow) */
+    /* MapLibre popup */
     .maplibregl-popup { max-width: var(--iw-w); }
     .maplibregl-popup-content {
       padding: 0;
@@ -106,10 +105,7 @@
     }
 
     /* Icon-only controls */
-    .icon-btn {
-      border: none; background: none; padding: 6px; border-radius: 6px;
-      cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--dark);
-    }
+    .icon-btn { border: none; background: none; padding: 6px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--dark); }
     .icon-btn:hover { background: #f3f4f6; }
     .icon-btn svg { width: 18px; height: 18px; }
 
@@ -129,40 +125,17 @@
       body.embed.embed-chrome-off .desk-toggle { display:none !important; }
     }
     .desk-toggle {
-      position: absolute;
-      top: 8px;
-      right: 12px;
-      z-index: 3000;
-      background: #110057;
-      color: #fff;
-      border: none;
-      padding: 8px 10px;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.2);
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      display: inline-flex;
+      position: absolute; top: 8px; right: 12px; z-index: 3000;
+      background: #110057; color: #fff; border: none; padding: 8px 10px; border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.2); align-items: center; gap: 6px; cursor: pointer; display: inline-flex;
     }
     .desk-toggle .icon { transition: transform .2s ease; }
-    .desk-toggle-floating {
-      position: fixed !important;
-      top: 12px !important;
-      left: 12px !important;
-      right: auto !important;
-      z-index: 3000 !important;
-      display: inline-flex !important;
-    }
+    .desk-toggle-floating { position: fixed !important; top: 12px !important; left: 12px !important; right: auto !important; z-index: 3000 !important; display: inline-flex !important; }
     .desk-toggle .icon.flipped { transform: rotate(180deg); }
     .app .sidebar{ transition: transform .3s ease; }
     .app.sidebar-collapsed{ grid-template-columns: 0 1fr !important; }
     .app.sidebar-collapsed .sidebar{ transform: translateX(-100%); }
-    .app.sidebar-collapsed .desk-toggle{
-      position: fixed !important;
-      top: 12px !important;
-      left: 12px !important;
-      right: auto !important;
-    }
+    .app.sidebar-collapsed .desk-toggle{ position: fixed !important; top: 12px !important; left: 12px !important; right: auto !important; }
     .app.sidebar-collapsed .desk-toggle .icon{ transform: rotate(180deg); }
 
     /* Responsive */
@@ -170,8 +143,7 @@
       .app { grid-template-columns: 1fr; grid-template-rows: 1fr; }
       .sidebar {
         position: fixed; top: 0; left: 0; height: 100%; width: 80%; max-width: 320px;
-        transform: translateX(-100%); transition: transform .3s ease; z-index: 2500;
-        box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        transform: translateX(-100%); transition: transform .3s ease; z-index: 2500; box-shadow: 2px 0 8px rgba(0,0,0,0.2);
       }
       .sidebar.open { transform: translateX(0); }
       #map { grid-row: 1 / 2; height: 100vh; }
@@ -183,10 +155,7 @@
     /* EMBED MODE */
     html.embed, body.embed { height: 100%; margin: 0; padding: 0; }
     body.embed .app { height: 100vh; }
-    body.embed.embed-chrome-off .sidebar,
-    body.embed.embed-chrome-off .menu-btn,
-    body.embed.embed-chrome-off .backdrop,
-    body.embed.embed-chrome-off .desk-toggle { display: none !important; }
+    body.embed.embed-chrome-off .sidebar, body.embed.embed-chrome-off .menu-btn, body.embed.embed-chrome-off .backdrop, body.embed.embed-chrome-off .desk-toggle { display: none !important; }
     body.embed.embed-chrome-off .app { display: block !important; width: 100% !important; height: 100vh !important; margin: 0; padding: 0; }
     body.embed.embed-chrome-off #map { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; }
   </style>
@@ -284,48 +253,30 @@
   </div>
 
   <script>
-    // ----------- CONFIG GUARD -----------
     const APP = window.APP_CONFIG || {};
     if (!APP.DATA) { alert('config.js not loaded (APP_CONFIG).'); }
-    // brand logo
     (function(){ const logo = document.getElementById('brand-logo'); if (logo && APP.MAP && APP.MAP.logo) logo.src = APP.MAP.logo; })();
 
-    // ---------------- FRESHPAINT BOOTSTRAP ----------------
+    // Freshpaint (no-op until envId present)
     let fpReady = false;
-    function initFreshpaintIfConfigured(cfg) {
+    (function initFreshpaint(){
       try {
-        const fpCfg = (cfg && cfg.FRESHPAINT) || {};
-        if (!fpCfg.enabled || !fpCfg.envId) return;
+        const f = APP.FRESHPAINT || {};
+        if (!f.enabled || !f.envId) return;
         (function(){var fp=window.freshpaint=window.freshpaint||[]; if(!fp.initialize){
-          if(fp.invoked){if(window.console && console.error){console.error("Freshpaint snippet included twice.");} return;}
+          if(fp.invoked){if(window.console&&console.error){console.error("Freshpaint snippet included twice.")} return;}
           fp.invoked=!0; fp.methods=["track","identify","group","page","alias"];
           fp.factory=function(n){return function(){var e=Array.prototype.slice.call(arguments);e.unshift(n);fp.push(e);return fp}};
           for(var i=0;i<fp.methods.length;i++){var key=fp.methods[i];fp[key]=fp.factory(key)}
           fp.load=function(e){var t=document.createElement("script");t.type="text/javascript";t.async=!0;
             t.src="https://cdn.freshpaint.io/static/js/freshpaint.js";
-            var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(t,n);
-            fp._loadOptions={env:e};
-          };
-        }})();
-        window.freshpaint.load(fpCfg.envId);
-        fpReady = true;
-      } catch (e) { console.warn("Freshpaint failed to init:", e); }
-    }
-    function trackFP(eventName, props){ if (!fpReady || !window.freshpaint || typeof window.freshpaint.track !== "function") return; try { window.freshpaint.track(eventName, props||{}); } catch {} }
-    function scrubPlaceForAnalytics(place, index, cfg) {
-      const f = (cfg && cfg.FRESHPAINT) || {};
-      const safe = { placeId: index, group: place.group || null, tags: (place.tags||[]).slice(0,5), hasAddress: !!place.address };
-      if (f.sendPlaceName) safe.name = place.name || null;
-      if (f.sendAddress) safe.address = place.address || null;
-      if (f.sendLatLng && typeof place.lat === "number" && typeof place.lng === "number") {
-        const p = Math.max(0, Math.min(6, +f.coarsePrecision || 0));
-        safe.lat = +place.lat.toFixed(p); safe.lng = +place.lng.toFixed(p);
-      }
-      return safe;
-    }
-    initFreshpaintIfConfigured(APP);
+            var n=document.getElementsByTagName("script")[0];n.parentNode.insertBefore(t,n); fp._loadOptions={env:e};};
+        }})(); window.freshpaint.load(f.envId); fpReady = true;
+      } catch(e){}
+    })();
+    function trackFP(name, props){ if (fpReady && window.freshpaint?.track) try{ window.freshpaint.track(name, props||{});}catch(e){} }
 
-    // ---------------- Sidebar desktop toggle ----------------
+    // Sidebar toggle
     let desktopSidebarCollapsed = false;
     const appEl = document.querySelector('.app');
     const deskToggleBtn = document.querySelector('.desk-toggle');
@@ -337,60 +288,46 @@
       desktopSidebarCollapsed = !!collapsed;
       appEl.classList.toggle('sidebar-collapsed', desktopSidebarCollapsed);
       if (desktopSidebarCollapsed) { floatToggleToViewport(); } else { dockToggleToHeader(); }
-      if (deskToggleBtn) {
-        deskToggleBtn.setAttribute('aria-label', desktopSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar');
-        deskToggleBtn.title = desktopSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar';
-        deskToggleBtn.dataset.state = desktopSidebarCollapsed ? 'closed' : 'open';
-        const label = deskToggleBtn.querySelector('.label'); if (label) label.textContent = desktopSidebarCollapsed ? 'Hide' /* stays “Hide” label offscreen */ : 'Hide';
-      }
       setTimeout(refreshMapSize, 320);
       trackFP("sidebar_toggle", { visible: !desktopSidebarCollapsed });
     }
     dockToggleToHeader();
-    if (deskToggleBtn) {
-      deskToggleBtn.addEventListener('click', () => {
-        const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-        if (!isDesktop) return;
-        setDesktopSidebar(!desktopSidebarCollapsed);
-      });
-    }
-    window.addEventListener('resize', () => {
-      const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-      if (!isDesktop) { if (desktopSidebarCollapsed) setDesktopSidebar(false); }
-      else { if (!desktopSidebarCollapsed) dockToggleToHeader(); refreshMapSize(); }
-    });
+    if (deskToggleBtn) deskToggleBtn.addEventListener('click',()=>{ if (!window.matchMedia('(min-width: 769px)').matches) return; setDesktopSidebar(!desktopSidebarCollapsed); });
+    window.addEventListener('resize', ()=>{ if (!window.matchMedia('(min-width: 769px)').matches) { if (desktopSidebarCollapsed) setDesktopSidebar(false);} else { if (!desktopSidebarCollapsed) dockToggleToHeader(); refreshMapSize(); } });
 
-    // ---------------- Helpers ----------------
+    // Helpers
     const $  = (sel) => document.querySelector(sel);
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
     const norm = (s) => String(s || "").trim().toLowerCase();
     const uniq = (arr)=> Array.from(new Set((arr||[]).filter(Boolean)));
     const parseList = (val)=> val ? val.split(",").map((s)=> s.trim()).filter(Boolean) : [];
-    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
 
-    // SVGs
-    const svgChevron = () => '<svg class="chev" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-    const svgEye     = () => '<svg class="eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>';
-    const svgEyeOff  = () => '<svg class="eyeoff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>';
-    const svgTargetSmall = () => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><line x1="16" y1="8" x2="13" y2="8"></line><line x1="3" y1="8" x2="0" y2="8"></line><line x1="8" y1="3" x2="8" y2="0"></line><line x1="8" y1="16" x2="8" y2="13"></line></svg>';
+    // Icons
+    function normalizeIconValue(v) {
+      if (!v) return "";
+      const raw = String(v).trim();
+      if (/^https?:\/\//i.test(raw)) return raw;
+      if (/\.(png|jpe?g|svg|webp)$/i.test(raw)) return raw;
+      const groupMap = APP.MAP?.iconsByGroup || {};
+      return groupMap[raw] || ""; // allow “Cobalt” etc.
+    }
+    function resolveIconSrc(place) {
+      const fromCell = normalizeIconValue(place.iconUrl);
+      if (fromCell) return fromCell;
+      const byGroup = APP.MAP?.iconsByGroup ? APP.MAP.iconsByGroup[place.group] : null;
+      return byGroup || "";
+    }
 
-    // Haversine
+    // Haversine + stagger coincident points
     function haversine(a, b) {
-      const R = 6371000;
-      const toRad = (d) => d * Math.PI / 180;
-      const dLat = toRad(b.lat - a.lat);
-      const dLng = toRad(b.lng - a.lng);
+      const R = 6371000, toRad=(d)=>d*Math.PI/180;
+      const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);
       const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
       const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
       return 2 * R * Math.asin(Math.sqrt(s));
     }
-
-    // Stagger for coincident points
-    function metersToDeg(lat, meters) {
-      const dLat = meters / 111320;
-      const dLng = meters / (111320 * Math.cos(lat * Math.PI / 180));
-      return { dLat, dLng };
-    }
+    function metersToDeg(lat, meters) { const dLat = meters / 111320; const dLng = meters / (111320 * Math.cos(lat * Math.PI / 180)); return { dLat, dLng }; }
     function spreadCoincidentPlaces(places, radiusMeters = 20) {
       const buckets = new Map();
       places.forEach((p, idx) => {
@@ -400,40 +337,16 @@
       });
       const adjusted = new Array(places.length);
       buckets.forEach((indices) => {
-        if (indices.length === 1) {
-          const i = indices[0];
-          adjusted[i] = { lat: places[i].lat, lng: places[i].lng };
-          return;
-        }
+        if (indices.length === 1) { const i = indices[0]; adjusted[i] = { lat: places[i].lat, lng: places[i].lng }; return; }
         const centerLat = places[indices[0]].lat;
         const { dLat, dLng } = metersToDeg(centerLat, radiusMeters);
         const n = indices.length;
         indices.forEach((i, k) => {
           const angle = (2 * Math.PI * k) / n;
-          const lat = centerLat + Math.sin(angle) * dLat;
-          const lng = places[i].lng + Math.cos(angle) * dLng;
-          adjusted[i] = { lat, lng };
+          adjusted[i] = { lat: centerLat + Math.sin(angle) * dLat, lng: places[i].lng + Math.cos(angle) * dLng };
         });
       });
       return adjusted.map((pos, i) => pos || { lat: places[i].lat, lng: places[i].lng });
-    }
-
-    // Icon handling
-    function normalizeIconValue(v) {
-      if (!v) return "";
-      const raw = String(v).trim();
-      if (/^https?:\/\//i.test(raw)) return raw;
-      if (/\.(png|jpe?g|svg|webp)$/i.test(raw)) return raw; // root-relative ok
-      const token = raw.toLowerCase().replace(/[^a-z]/g, "");
-      if (APP.MAP && APP.MAP.iconsByGroup && APP.MAP.iconsByGroup[raw]) return APP.MAP.iconsByGroup[raw];
-      return ""; // no token library here (we rely on IconsByGroup)
-    }
-    function resolveIconSrc(place) {
-      const fromCell = normalizeIconValue(place.iconUrl);
-      if (fromCell) return fromCell;
-      const byGroup = APP.MAP && APP.MAP.iconsByGroup ? APP.MAP.iconsByGroup[place.group] : null;
-      if (byGroup) return byGroup;
-      return "";
     }
 
     // Popup HTML
@@ -446,17 +359,7 @@
       const tag = (place.tags && place.tags[0]) ? '<div class="tagpill">'+escapeHtml(place.tags[0])+'</div>' : '';
       const headerImg = place.headerImage ? '<div class="hero"><img src="'+place.headerImage+'" alt="'+safeName+'"/>'+tag+'</div>' : '';
       const learnHref = place.moreUrl || ('https://www.google.com/search?q=' + encodeURIComponent(place.name + ' ' + (place.address||'')));
-      return [
-        '<div class="iw">',
-          headerImg,
-          '<div class="pad">',
-            '<h3>'+safeName+'</h3>',
-            group,
-            addr,
-            '<a class="btn-learn" href="'+learnHref+'" target="_blank" rel="noopener">Learn More</a>',
-          '</div>',
-        '</div>'
-      ].join('');
+      return ['<div class="iw">', headerImg, '<div class="pad">', '<h3>'+safeName+'</h3>', group, addr, '<a class="btn-learn" href="'+learnHref+'" target="_blank" rel="noopener">Learn More</a>', '</div>', '</div>'].join('');
     }
 
     // Data (Sheets)
@@ -474,7 +377,6 @@
       const headers = rows[0].map((h)=> (h||'').trim());
       return rows.slice(1).map((r)=> Object.fromEntries(headers.map((h,i)=> [h, r[i] || ""])));
     }
-
     function normalizeRow(row) {
       const keywords   = parseList(row["Keywords"] || row["Notes"] || "");
       const tagsPretty = parseList(row["Tags"] || "");
@@ -486,7 +388,7 @@
         lng: parseFloat(row["Longitude"]) || null,
         group: row["Group"] || "",
         tags: tagsPretty,
-        tagsNorm: tagsNorm,
+        tagsNorm,
         iconUrl: row["Icon URL"] || "",
         headerImage: row["Header Image URL"] || "",
         moreUrl: row["Learn More URL"] || row["URL"] || "",
@@ -495,299 +397,300 @@
         groupOrder: Number.parseInt(row["Group Order"], 10) || 9999
       };
     }
-
     function groupBy(arr, keyFn) {
       const m = new Map();
-      (arr||[]).forEach((it)=>{
-        const k = keyFn(it) || "Other";
-        if (!m.has(k)) m.set(k, []);
-        m.get(k).push(it);
-      });
+      (arr||[]).forEach((it)=>{ const k = keyFn(it) || "Other"; if (!m.has(k)) m.set(k, []); m.get(k).push(it); });
       return m;
     }
 
-    // Global state
-    let map, allPlaces = [], markers = [], userPos = null, popup = null, onlyGroup = null;
-    const groupState = {}; // { [group]: { collapsed, faded } }
+    // Map & layers
+    let map, allPlaces = [], userPos = null, popup = null, onlyGroup = null;
+    const groupState = {};
+    let placesSourceId = 'places-src', unclusteredLayerId = 'places-unclustered', clustersLayerId = 'clusters', clusterCountLayerId = 'cluster-count';
 
-    // Map init
     function initMap() {
-      const styleUrl = (APP.MAP && APP.MAP.style) || "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"; // fallback
+      const styleUrl = (APP.MAP && APP.MAP.style) || "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
       map = new maplibregl.Map({
         container: 'map',
-        style: styleUrl, // Positron is grayscale-like with clear roads
+        style: styleUrl,
         center: (APP.MAP && APP.MAP.center) || {lat: 37.0953, lng: -113.5786},
         zoom: (APP.MAP && APP.MAP.zoom) || 9,
         attributionControl: true
       });
       window._map = map;
       map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
-      map.on('load', () => {
-        trackFP('map_loaded', { provider: 'maplibre' });
-      });
+      map.on('load', () => trackFP('map_loaded', { provider: 'maplibre' }));
     }
 
-    function createMarker(place, idx, pos) {
-      const el = document.createElement('img');
-      el.className = 'pin-img';
-      el.style.width = '36px';
-      el.style.height = '36px';
-      el.style.objectFit = 'contain';
-      const icon = resolveIconSrc(place);
-      el.src = icon || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36"><circle cx="18" cy="18" r="8" fill="%234A00E2"/></svg>';
+    function uniqueIconsFor(places) {
+      const set = new Set();
+      places.forEach(p => { const src = resolveIconSrc(p); if (src) set.add(src); });
+      return Array.from(set);
+    }
+    function loadImages(map, urls) {
+      return Promise.all(urls.map(url => new Promise((resolve) => {
+        if (map.hasImage(url)) return resolve();
+        map.loadImage(url, (err, img) => {
+          if (err || !img) { // fallback tiny pin
+            const c = new OffscreenCanvas(40,40), ctx=c.getContext('2d'); ctx.fillStyle='#4A00E2'; ctx.beginPath(); ctx.arc(20,20,8,0,Math.PI*2); ctx.fill();
+            map.addImage(url, c.transferToImageBitmap ? c.transferToImageBitmap() : img, { pixelRatio: 2 });
+            return resolve();
+          }
+          map.addImage(url, img, { pixelRatio: 2 });
+          resolve();
+        });
+      })));
+    }
 
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([pos.lng, pos.lat])
-        .addTo(map);
+    function toGeoJSON(places, adjustedPositions) {
+      return {
+        type: 'FeatureCollection',
+        features: places.map((p, i) => ({
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [ (adjustedPositions[i]||p).lng, (adjustedPositions[i]||p).lat ] },
+          properties: {
+            idx: i,
+            name: p.name,
+            address: p.address || '',
+            group: p.group || '',
+            tags: (p.tags||[]).join(', '),
+            icon: resolveIconSrc(p) || 'default-pin',
+            html: markerHtml(p),
+            faded: !!(groupState[p.group]?.faded)
+          }
+        }))
+      };
+    }
 
-      marker.__data = place;
-      marker.__idx = idx;
+    function addOrUpdateSourceAndLayers(geojson) {
+      if (map.getSource(placesSourceId)) {
+        map.getSource(placesSourceId).setData(geojson);
+        return;
+      }
+      map.addSource(placesSourceId, {
+        type: 'geojson',
+        data: geojson,
+        cluster: true,
+        clusterRadius: 52,
+        clusterMaxZoom: 14
+      });
 
-      const openPopup = () => {
+      // Cluster bubbles
+      map.addLayer({
+        id: clustersLayerId,
+        type: 'circle',
+        source: placesSourceId,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#4A00E2',
+          'circle-radius': ['interpolate', ['linear'], ['get', 'point_count'], 2, 18, 30, 26, 100, 34],
+          'circle-opacity': 0.9
+        }
+      });
+      // Cluster counts
+      map.addLayer({
+        id: clusterCountLayerId,
+        type: 'symbol',
+        source: placesSourceId,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-size': 12,
+          'text-font': ['Open Sans Bold','Arial Unicode MS Bold']
+        },
+        paint: { 'text-color': '#FFFFFF' }
+      });
+      // Unclustered points with per-feature icons
+      map.addLayer({
+        id: unclusteredLayerId,
+        type: 'symbol',
+        source: placesSourceId,
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-size': 0.9,
+          'icon-anchor': 'bottom',
+          'icon-allow-overlap': true
+        },
+        paint: {
+          'icon-opacity': [
+            'case',
+            ['boolean', ['get','faded'], false],
+            parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35,
+            1
+          ]
+        }
+      });
+
+      // Click cluster: zoom in
+      map.on('click', clustersLayerId, (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: [clustersLayerId] });
+        const clusterId = features[0].properties.cluster_id;
+        const source = map.getSource(placesSourceId);
+        source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
+      });
+
+      // Click point: open popup
+      map.on('click', unclusteredLayerId, (e) => {
+        const f = e.features && e.features[0]; if (!f) return;
+        const coords = f.geometry.coordinates.slice();
+        const html = f.properties.html;
         if (popup) popup.remove();
-        const html = markerHtml(place);
-        popup = new maplibregl.Popup({ closeOnClick: true, maxWidth: String(getComputedStyle(document.documentElement).getPropertyValue('--iw-w') || 320)+'px' })
-          .setLngLat([pos.lng, pos.lat])
+        popup = new maplibregl.Popup({ closeOnClick: true, maxWidth: getComputedStyle(document.documentElement).getPropertyValue('--iw-w') || '320px' })
+          .setLngLat(coords)
           .setHTML(html)
           .addTo(map);
-        // analytics
-        trackFP("marker_opened", scrubPlaceForAnalytics(place, idx, APP));
-      };
-
-      el.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openPopup();
+        trackFP('marker_opened', { group: f.properties.group || null, hasAddress: !!f.properties.address });
       });
 
-      return { marker, openPopup };
+      // Cursor hints
+      map.on('mouseenter', clustersLayerId, () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', clustersLayerId, () => map.getCanvas().style.cursor = '');
+      map.on('mouseenter', unclusteredLayerId, () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', unclusteredLayerId, () => map.getCanvas().style.cursor = '');
     }
 
-    function fitToMarkers(arr) {
-      if (!arr || !arr.length) return;
-      if (arr.length === 1) {
-        const { marker } = arr[0];
-        const lngLat = marker.getLngLat();
-        map.easeTo({ center: lngLat, zoom: Math.max(map.getZoom(), 15) });
+    function fitToGeoJSON(geojson) {
+      if (!geojson.features.length) return;
+      if (geojson.features.length === 1) {
+        const c = geojson.features[0].geometry.coordinates;
+        map.easeTo({ center: c, zoom: Math.max(map.getZoom(), 15), duration: 500 });
         return;
       }
       const b = new maplibregl.LngLatBounds();
-      arr.forEach(({marker}) => b.extend(marker.getLngLat()));
+      geojson.features.forEach(f => b.extend(f.geometry.coordinates));
       map.fitBounds(b, { padding: 60, duration: 500 });
     }
 
-    function buildFiltersUI() {
-      const allPretty = [].concat.apply([], allPlaces.map((p)=> p.tags || []));
+    // UI: filters/search/list
+    function buildFiltersUI(places) {
+      const allPretty = [].concat.apply([], places.map((p)=> p.tags || []));
       const uniquePretty = uniq(allPretty).sort((a,b)=> a.localeCompare(b));
       const items = uniquePretty.map((labelPretty)=> ({ label: labelPretty, value: norm(labelPretty) }));
-
       const tagWrap = $("#tag-filters");
-      tagWrap.innerHTML = items.map((it)=> '<label class="chip"><input type="checkbox" value="'+it.value+'" checked /> '+escapeHtml(it.label)+'</label>').join('');
-      tagWrap.addEventListener('change', applyFilters);
+      tagWrap.innerHTML = items.map((it)=> '<label class="chip"><input type="checkbox" value="'+it.value+'" checked /> '+((it.label||'')||'').replace(/</g,'&lt;')+'</label>').join('');
+      tagWrap.addEventListener('change', ()=> applyFilters(true));
     }
 
-    function renderList(places) {
-      const list = $("#list");
-      list.innerHTML = "";
+    const svgChevron = () => '<svg class="chev" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+    const svgEye     = () => '<svg class="eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+    const svgEyeOff  = () => '<svg class="eyeoff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>';
+    const svgTargetSmall = () => '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"></circle><line x1="16" y1="8" x2="13" y2="8"></line><line x1="3" y1="8" x2="0" y2="8"></line><line x1="8" y1="3" x2="8" y2="0"></line><line x1="8" y1="16" x2="8" y2="13"></line></svg>';
 
+    function renderList(places) {
+      const list = $("#list"); list.innerHTML = "";
       const grouped = groupBy(places, (p)=> p.group);
-      // compute group order
       const orderMap = new Map();
-      grouped.forEach((arr, g) => {
-        const ord = Math.min(...arr.map(p => p.groupOrder ?? 9999));
-        orderMap.set(g, Number.isFinite(ord) ? ord : 9999);
-      });
-      const groupsSorted = Array.from(grouped.keys()).sort((a,b)=>{
-        const oa = orderMap.get(a) ?? 9999;
-        const ob = orderMap.get(b) ?? 9999;
-        return (oa - ob) || a.localeCompare(b);
-      });
+      grouped.forEach((arr, g) => { const ord = Math.min(...arr.map(p => p.groupOrder ?? 9999)); orderMap.set(g, Number.isFinite(ord) ? ord : 9999); });
+      const groupsSorted = Array.from(grouped.keys()).sort((a,b)=> (orderMap.get(a)??9999) - (orderMap.get(b)??9999) || a.localeCompare(b));
 
       groupsSorted.forEach((g)=>{
         if (!groupState[g]) groupState[g] = { collapsed: false, faded: false };
+        const section = document.createElement("div"); section.className = "group-section";
+        const head = document.createElement("div"); head.className = "group-head" + (groupState[g].faded ? " faded" : ""); head.dataset.group = g;
+        const titleWrap = document.createElement("div"); titleWrap.className = "title"; titleWrap.textContent = g || "Other";
+        const controls = document.createElement("div"); controls.className = "controls";
 
-        const section = document.createElement("div");
-        section.className = "group-section";
+        const onlyBtn = document.createElement("button"); onlyBtn.className = "iconbtn"; onlyBtn.title = "Show only this group"; onlyBtn.innerHTML = svgTargetSmall();
+        onlyBtn.addEventListener("click", (e)=>{ e.stopPropagation(); onlyGroup = (onlyGroup === g) ? null : g; applyFilters(true); trackFP("group_only_toggled", { group: g, only: (onlyGroup === g) }); });
 
-        const head = document.createElement("div");
-        head.className = "group-head" + (groupState[g].faded ? " faded" : "");
-        head.dataset.group = g;
-
-        const titleWrap = document.createElement("div");
-        titleWrap.className = "title";
-        titleWrap.textContent = g || "Other";
-
-        const controls = document.createElement("div");
-        controls.className = "controls";
-
-        const onlyBtn = document.createElement("button");
-        onlyBtn.className = "iconbtn";
-        onlyBtn.title = "Show only this group";
-        onlyBtn.innerHTML = svgTargetSmall();
-        onlyBtn.addEventListener("click", (e)=>{
-          e.stopPropagation();
-          onlyGroup = (onlyGroup === g) ? null : g;
-          applyFilters(true);
-          trackFP("group_only_toggled", { group: g, only: (onlyGroup === g) });
-        });
-
-        const eyeBtn = document.createElement("button");
-        eyeBtn.className = "iconbtn eye-toggle";
-        eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group";
-        eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye();
+        const eyeBtn = document.createElement("button"); eyeBtn.className = "iconbtn eye-toggle"; eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group"; eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye();
         eyeBtn.addEventListener("click", (e)=>{
-          e.stopPropagation();
-          groupState[g].faded = !groupState[g].faded;
-          head.classList.toggle("faded", groupState[g].faded);
-          eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye();
-          eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group";
-          // apply fade on current visible markers
-          markers.forEach(mk => {
-            if (!mk) return;
-            if (mk.marker && mk.marker.__data && mk.marker.__data.group === g) {
-              const el = mk.marker.getElement();
-              el.style.opacity = groupState[g].faded ? String(getComputedStyle(document.documentElement).getPropertyValue('--fade') || 0.35) : '1';
-            }
-          });
+          e.stopPropagation(); groupState[g].faded = !groupState[g].faded; head.classList.toggle("faded", groupState[g].faded);
+          eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye(); eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group";
+          applyFilters(false); // updates icon-opacity via feature property
         });
 
-        const chevBtn = document.createElement("button");
-        chevBtn.className = "iconbtn";
-        chevBtn.innerHTML = svgChevron();
+        const chevBtn = document.createElement("button"); chevBtn.className = "iconbtn"; chevBtn.innerHTML = svgChevron();
+        controls.appendChild(onlyBtn); controls.appendChild(eyeBtn); controls.appendChild(chevBtn);
+        head.appendChild(titleWrap); head.appendChild(controls); section.appendChild(head);
 
-        controls.appendChild(onlyBtn);
-        controls.appendChild(eyeBtn);
-        controls.appendChild(chevBtn);
-        head.appendChild(titleWrap);
-        head.appendChild(controls);
-        section.appendChild(head);
-
-        const body = document.createElement("div");
-        body.className = "group-body";
+        const body = document.createElement("div"); body.className = "group-body";
         if (groupState[g].collapsed) head.classList.add("collapsed");
         if (groupState[g].faded) body.classList.add("faded");
+        head.addEventListener("click", (e)=>{ if (e.target.closest(".eye-toggle") || e.target === onlyBtn) return; groupState[g].collapsed = !groupState[g].collapsed; head.classList.toggle("collapsed", groupState[g].collapsed); });
 
-        head.addEventListener("click", (e)=>{
-          if (e.target.closest(".eye-toggle") || e.target.closest(".iconbtn") === onlyBtn) return;
-          groupState[g].collapsed = !groupState[g].collapsed;
-          head.classList.toggle("collapsed", groupState[g].collapsed);
-        });
-
-        grouped.get(g).forEach((p)=>{
-          const item = document.createElement("div");
-          item.className = "card";
-          if (groupState[g].faded) item.classList.add("faded");
-
-          const iconSrc = resolveIconSrc(p);
-          const iconEl = iconSrc ? '<img class="pin-img" src="'+iconSrc+'" alt=""/>' : '';
+        grouped.get(g).forEach((p, idx)=>{
+          const item = document.createElement("div"); item.className = "card"; if (groupState[g].faded) item.classList.add("faded");
+          const iconSrc = resolveIconSrc(p); const iconEl = iconSrc ? '<img class="pin-img" src="'+iconSrc+'" alt=""/>' : '';
           item.innerHTML = iconEl + '<div><h4>'+escapeHtml(p.name)+'</h4><div class="meta">'+(p.tags||[]).join(' · ')+'</div></div>';
-
           item.addEventListener("click", ()=>{
-            // find the marker for this place
-            const mk = markers.find(m => m && m.marker && m.marker.__data === p);
-            if (!mk) return;
-            const lngLat = mk.marker.getLngLat();
-            map.easeTo({ center: lngLat, zoom: Math.max(map.getZoom(), 17), duration: 500 });
-            // open popup after move finishes
-            setTimeout(()=> mk.openPopup(), 520);
+            // center & popup by searching rendered feature with same name & group (best-effort)
+            const src = map.getSource(placesSourceId); if (!src) return;
+            // Ask the source’s current data
+            const data = src._data || src._options?.data; if (!data) return;
+            const f = (data.features || []).find(fe => fe.properties && fe.properties.name === p.name && fe.properties.group === p.group);
+            if (!f) return;
+            const coords = f.geometry.coordinates;
+            map.easeTo({ center: coords, zoom: Math.max(map.getZoom(), 17), duration: 500 });
+            setTimeout(()=>{
+              if (popup) popup.remove();
+              popup = new maplibregl.Popup({ closeOnClick: true, maxWidth: getComputedStyle(document.documentElement).getPropertyValue('--iw-w') || '320px' })
+                .setLngLat(coords).setHTML(f.properties.html).addTo(map);
+            }, 520);
           });
-
           body.appendChild(item);
         });
 
-        section.appendChild(body);
-        list.appendChild(section);
+        section.appendChild(body); list.appendChild(section);
       });
 
       $("#summary").textContent = places.length + " place" + (places.length===1 ? "" : "s") + " shown";
     }
 
-    function buildAndPlaceMarkers(places) {
-      // Clear old markers
-      markers.forEach(m => { try { m.marker && m.marker.remove(); } catch(_){} });
-      markers = [];
-
-      // Spread coincident
-      const adjusted = spreadCoincidentPlaces(places, 20);
-      places.forEach((p, idx) => {
-        const pos = adjusted[idx] || { lat: p.lat, lng: p.lng };
-        const mk = createMarker(p, idx, pos);
-        // apply fade state if needed
-        if (groupState[p.group]?.faded) mk.marker.getElement().style.opacity = String(getComputedStyle(document.documentElement).getPropertyValue('--fade') || 0.35);
-        markers.push(mk);
-      });
-    }
-
-    function currentVisibleMatches() {
+    function currentMatches() {
       const q = $("#search").value.trim().toLowerCase();
       const activeTags = new Set($$("#tag-filters input:checked").map((i)=> i.value));
-
       const matches = [];
       allPlaces.forEach((place) => {
         let ok = true;
-        // only-group gate
         if (onlyGroup && (place.group !== onlyGroup)) ok = false;
-
-        // tags gate (ANY checked tag matches)
         if (ok && activeTags.size > 0) {
           const ptags = place.tagsNorm || [];
           ok = ptags.some((t)=> activeTags.has(t));
         }
-
-        // search gate
         if (ok && q) {
           const hay = (place.name + " " + place.group + " " + (place.tags||[]).join(" ") + " " + place.keywordsText).toLowerCase();
           if (hay.indexOf(q) === -1) ok = false;
         }
-
         if (ok) matches.push(place);
       });
-
-      // sort
       if (userPos && $("#sort").value === 'distance') {
         matches.forEach((p)=> p._distanceM = haversine(userPos, {lat: p.lat, lng: p.lng}));
         matches.sort((a,b)=> a._distanceM - b._distanceM);
       } else {
         matches.sort((a,b)=> a.name.localeCompare(b.name));
       }
-
       return matches;
     }
 
-    function applyFilters(fitNow) {
-      const matches = currentVisibleMatches();
-
-      // rebuild sidebar
-      renderList(matches);
-
-      // rebuild markers for matches only
-      // remove all and rebuild to keep 1:1 with sidebar
-      markers.forEach(m => { try { m.marker && m.marker.remove(); } catch(_){} });
-      markers = [];
-      const adjusted = spreadCoincidentPlaces(matches, 20);
-      matches.forEach((p, idx) => {
-        const pos = adjusted[idx] || { lat: p.lat, lng: p.lng };
-        const mk = createMarker(p, idx, pos);
-        if (groupState[p.group]?.faded) mk.marker.getElement().style.opacity = String(getComputedStyle(document.documentElement).getPropertyValue('--fade') || 0.35);
-        markers.push(mk);
-      });
-
-      $("#summary").textContent = matches.length + " place" + (matches.length===1 ? "" : "s") + " shown";
-
-      // auto-fit
-      if (fitNow !== false) {
-        fitToMarkers(markers);
+    async function rebuildMapData(places) {
+      // prepare icons
+      const icons = uniqueIconsFor(places);
+      if (icons.length) await loadImages(map, icons);
+      if (!map.hasImage('default-pin')) {
+        const c = document.createElement('canvas'); c.width=36; c.height=36; const ctx=c.getContext('2d'); ctx.fillStyle='#4A00E2'; ctx.beginPath(); ctx.arc(18,18,8,0,Math.PI*2); ctx.fill();
+        map.addImage('default-pin', c, { pixelRatio: 2 });
       }
-
-      // analytics
-      const activeGroups = Array.from(new Set(matches.map(p => p.group).filter(Boolean)));
-      trackFP("filter_applied", {
-        query: (document.querySelector("#search")?.value || "").trim(),
-        groups_active: activeGroups.slice(0, 10),
-        results_count: matches.length
-      });
+      const adjusted = spreadCoincidentPlaces(places, 20);
+      const geojson = toGeoJSON(places, adjusted);
+      addOrUpdateSourceAndLayers(geojson);
+      return geojson;
     }
 
-    // Drawer controls (mobile)
+    async function applyFilters(fitNow) {
+      const matches = currentMatches();
+      renderList(matches);
+      const geojson = await rebuildMapData(matches);
+      $("#summary").textContent = matches.length + " place" + (matches.length===1 ? "" : "s") + " shown";
+      if (fitNow !== false) fitToGeoJSON(geojson);
+      trackFP("filter_applied", { query: ($('#search')?.value||'').trim(), groups_active: Array.from(new Set(matches.map(p=>p.group))).slice(0,10), results_count: matches.length });
+    }
+
+    // Drawer & controls
     const menuBtn   = document.querySelector('.menu-btn');
     const sidebarEl = document.getElementById('sidebar');
     const backdrop  = document.querySelector('.backdrop');
@@ -797,8 +700,6 @@
       menuBtn.addEventListener('click', ()=>{ if (sidebarEl.classList.contains('open')) { closeDrawer(); } else { openDrawer(); } });
       backdrop.addEventListener('click', closeDrawer);
     }
-
-    // Near me
     function getUserLocation() {
       return new Promise((resolve, reject)=>{
         if (!navigator.geolocation) return reject(new Error('No geolocation'));
@@ -810,64 +711,59 @@
       });
     }
 
-    // Init App
+    // Init
     async function initApp() {
       try {
         initMap();
-
-        // UI show/hide via config
-        if (APP.UI?.hideControls) { const el = document.getElementById('controls'); if (el) el.style.display = 'none'; }
-        if (APP.UI?.hideFilters)  { const el = document.getElementById('filters');  if (el) el.style.display = 'none'; }
+        if (APP.UI?.hideControls) document.getElementById('controls').style.display = 'none';
+        if (APP.UI?.hideFilters)  document.getElementById('filters').style.display  = 'none';
 
         const rows = await fetchSheetRows();
         allPlaces = rows.map(normalizeRow).filter((p)=> Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
-        buildFiltersUI();
-        renderList(allPlaces);
-        buildAndPlaceMarkers(allPlaces);
-        fitToMarkers(markers);
-
-        // Controls
-        $('#search').addEventListener('input', ()=> applyFilters(true));
-        $('#sort').addEventListener('change', ()=> applyFilters(true));
-        $('#btn-reset').addEventListener('click', ()=>{
-          // clear all
-          $$("#tag-filters input[type=checkbox]").forEach((i)=> i.checked = true);
-          $('#search').value = '';
-          $('#sort').value = 'name';
-          onlyGroup = null;
-          Object.keys(groupState).forEach((k)=> groupState[k] = { collapsed:false, faded:false });
-          // rebuild everything
+        // Wait for map to be ready before adding images/layers
+        map.once('load', async ()=>{
+          buildFiltersUI(allPlaces);
           renderList(allPlaces);
-          buildAndPlaceMarkers(allPlaces);
-          fitToMarkers(markers);
-          if (popup) { popup.remove(); popup = null; }
-          closeDrawer();
-          trackFP("reset_clicked", { restore_all: true });
-        });
+          const initialGeo = await rebuildMapData(allPlaces);
+          fitToGeoJSON(initialGeo);
 
-        $('#btn-nearme').addEventListener('click', async ()=>{
-          try {
-            const pos = await getUserLocation();
-            userPos = pos;
-            const center = [pos.lng, pos.lat];
-            map.easeTo({ center, zoom: Math.max(map.getZoom(), 12) });
-            $('#sort').value = 'distance';
-            applyFilters(true);
-            trackFP("geolocate_clicked", { allowed: true });
-          } catch {
-            alert('Location permission was denied or unavailable.');
-            trackFP("geolocate_clicked", { allowed: false });
-          }
-        });
+          // Controls
+          $('#search').addEventListener('input', ()=> applyFilters(true));
+          $('#sort').addEventListener('change', ()=> applyFilters(true));
+          $('#btn-reset').addEventListener('click', async ()=>{
+            $$("#tag-filters input[type=checkbox]").forEach((i)=> i.checked = true);
+            $('#search').value = '';
+            $('#sort').value = 'name';
+            onlyGroup = null;
+            Object.keys(groupState).forEach((k)=> groupState[k] = { collapsed:false, faded:false });
+            renderList(allPlaces);
+            const gj = await rebuildMapData(allPlaces);
+            fitToGeoJSON(gj);
+            if (popup) { popup.remove(); popup = null; }
+            closeDrawer();
+            trackFP("reset_clicked", { restore_all: true });
+          });
 
+          $('#btn-nearme').addEventListener('click', async ()=>{
+            try {
+              const pos = await getUserLocation();
+              userPos = pos;
+              map.easeTo({ center: [pos.lng, pos.lat], zoom: Math.max(map.getZoom(), 12) });
+              $('#sort').value = 'distance';
+              applyFilters(true);
+              trackFP("geolocate_clicked", { allowed: true });
+            } catch {
+              alert('Location permission was denied or unavailable.');
+              trackFP("geolocate_clicked", { allowed: false });
+            }
+          });
+        });
       } catch (err) {
         console.error(err);
         alert('Failed to initialize: ' + err.message);
       }
     }
-
-    // GO
     window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
