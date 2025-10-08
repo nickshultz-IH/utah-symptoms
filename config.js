@@ -6,8 +6,8 @@ window.APP_CONFIG = {
     sheetRange: "Sheet1!A:Z"
   },
   UI: {
-    hideControls: true,
-    hideFilters: true,
+    hideControls: false,
+    hideFilters: false,
     clustering: true
   },
   MAP: {
