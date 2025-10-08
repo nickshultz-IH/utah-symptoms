@@ -24,7 +24,7 @@ window.APP_CONFIG = {
 
     // Basemap style — Mapbox GL style JSON (free demo style shown).
     // Swap for your preferred gray/desaturated style to better match Snazzy.
-    style: "https://demotiles.maplibre.org/style.json",
+    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
 
     // Brand/logo at top of sidebar
     logo: "logo-light.png",
