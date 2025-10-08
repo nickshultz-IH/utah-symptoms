@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Intermountain Health</title>
-  <meta name="description" content="MapLibre + Google Sheets + Clustering with Atlist-style UI." />
+  <meta name="description" content="MapLibre + Google Sheets + clustering with Atlist-style sidebar and Intermountain styling." />
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,108 +18,137 @@
   <style>
     :root{
       --sidebar-w: 380px;
-      --accent: #4A00E2;   /* cluster/accents */
-      --dark: #110057;     /* dark brand blue */
-      --muted: #6b7280;
-      --chip: #F7F5F9;
-      --fade: 0.35;
-      --iw-w: 300px;
-      --iw-w-sm: 275px;
+      --accent: #4A00E2;
+      --dark: #110057;
+      --muted:#6b7280;
+      --chip:#F7F5F9;
+      --fade:.35;
+      --iw-w: 340px;       /* popup width on desktop */
+      --iw-w-sm: 300px;    /* popup width on mobile */
     }
-    html,body{height:100%;margin:0;color:var(--dark);font-family:'Source Sans 3',Arial,sans-serif;}
-    h1,h2,h3,h4,.btn,.chip{font-family:'Inter',Arial,sans-serif;}
 
-    .app{height:100vh;display:grid;grid-template-columns:var(--sidebar-w) 1fr;}
-    .sidebar{height:100%;overflow:hidden;border-right:1px solid #e5e7eb;display:flex;flex-direction:column;background:#fff;}
-    .sidebar header{padding:16px 16px 8px;border-bottom:1px solid #e5e7eb;position:relative;}
-    .sidebar h1{margin:0 0 6px;font-size:20px;font-weight:700;}
-    .controls{padding:12px 16px;border-bottom:1px solid #e5e7eb;gap:8px;display:grid;grid-template-columns:1fr;background:#fff;}
-    .row{display:flex;gap:8px;align-items:center;}
-    .row>*{flex:1;}
-    .search input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:14px;}
-    .btn{appearance:none;border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:8px 10px;font-size:13px;cursor:pointer;}
-    .filters{padding:10px 16px;overflow:auto;border-bottom:1px solid #e5e7eb;max-height:30%;background:#fff;}
-    .filters h3{margin:10px 0 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-    .chips{display:flex;flex-wrap:wrap;gap:6px;}
-    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:var(--chip);border:1px solid #e5e7eb;border-radius:999px;font-size:12px;cursor:pointer;user-select:none;}
-    .list{overflow:auto;flex:1;background:#fff;}
+    html, body { height: 100%; margin: 0; color: var(--dark); font-family: 'Source Sans 3', Arial, sans-serif; }
+    h1, h2, h3, h4, .btn, .chip { font-family: 'Inter', Arial, sans-serif; }
 
-    .group-section{border-top:1px solid #eee;}
-    .group-head{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 16px;font-size:13px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:.04em;background:#fafafa;position:sticky;top:0;z-index:1;border-bottom:1px solid #f0f0f0;}
-    .group-head .title{display:flex;align-items:center;gap:10px;}
-    .group-head .controls{display:flex;align-items:center;gap:10px;}
-    .iconbtn{appearance:none;border:none;background:transparent;padding:4px;cursor:pointer;color:#374151;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;}
-    .iconbtn:hover{background:#efefef;}
-    .chev{transition:transform .18s ease;}
-    .collapsed .chev{transform:rotate(90deg);}
-    .faded{opacity:var(--fade);}
-    .group-body{display:block;}
-    .collapsed + .group-body{display:none;}
+    .app { height: 100vh; display: grid; grid-template-columns: var(--sidebar-w) 1fr; }
+    .sidebar { height: 100%; overflow: hidden; border-right: 1px solid #e5e7eb; display: flex; flex-direction: column; background: #fff; }
+    .sidebar header { padding: 16px 16px 8px; border-bottom: 1px solid #e5e7eb; position: relative; }
+    .sidebar h1 { margin: 0 0 6px; font-size: 20px; font-weight: 700; }
+    .meta { color: var(--muted); font-size: 12px; }
 
-    .card{border-bottom:1px solid #f3f4f6;padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;}
-    .card:hover{background:#f9fafb;}
-    .card h4{margin:0 0 2px;font-size:15px;}
-    .meta{color:var(--muted);font-size:12px;}
-    .pin-img{width:20px;height:20px;flex:0 0 20px;object-fit:contain;}
+    .controls { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; gap: 8px; display: grid; grid-template-columns: 1fr; background: #fff; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .row > * { flex:1; }
+    .search input { width:100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; }
+    .btn { appearance:none; border:1px solid #d1d5db; background:#fff; border-radius:10px; padding:8px 10px; font-size:13px; cursor:pointer; }
 
-    #map{height:100%;width:100%;}
+    .filters { padding:10px 16px; overflow:auto; border-bottom:1px solid #e5e7eb; max-height:30%; background:#fff; }
+    .filters h3 { margin:10px 0 8px; font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; }
+    .chip { display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:var(--chip); border:1px solid #e5e7eb; border-radius:999px; font-size:12px; cursor:pointer; user-select:none; }
+
+    .list { overflow:auto; flex:1; background:#fff; }
+
+    /* Group (accordion) */
+    .group-section { border-top:1px solid #eee; }
+    .group-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 12px 10px 16px; font-size:13px; color:#374151; font-weight:600;
+      text-transform:uppercase; letter-spacing:.04em; background:#fafafa;
+      position:sticky; top:0; z-index:1; border-bottom:1px solid #f0f0f0;
+    }
+    .group-head .controls { display:flex; gap:10px; }
+    .iconbtn { appearance:none; border:none; background:transparent; padding:4px; cursor:pointer; color:#374151; border-radius:6px; }
+    .iconbtn:hover { background:#efefef; }
+    .chev{ transition:transform .18s ease; }
+    .collapsed .chev { transform: rotate(90deg); }
+    .faded{ opacity: var(--fade); }
+
+    .group-body { display:block; }
+    .collapsed + .group-body { display:none; }
+
+    .card { border-bottom:1px solid #f3f4f6; padding:12px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; }
+    .card:hover { background:#f9fafb; }
+    .card h4 { margin:0 0 2px; font-size:15px; }
+    .pin-img { width:20px; height:20px; flex:0 0 20px; object-fit:contain; }
+    .meta-row { color:var(--muted); font-size:12px; }
+
+    #map { height:100%; width:100%; position:relative; }
+
+    /* MapLibre popup (wider & styled) */
+    .maplibregl-popup { z-index: 2000; }
+    .maplibregl-popup-content {
+      padding: 0 !important;
+      width: var(--iw-w);
+      max-width: none !important;
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.15);
+      overflow: hidden;
+      font-family: 'Source Sans 3', Arial, sans-serif;
+    }
+    .iw .hero { position:relative; width:100%; height:150px; overflow:hidden; }
+    .iw .hero img { width:100%; height:100%; object-fit:cover; }
+    .iw .tagpill { position:absolute; top:10px; left:10px; background:#fff; color:#111827; font-size:12px; padding:4px 10px; border-radius:999px; border:1px solid #e5e7eb; }
+    .iw .pad { padding:12px 14px 14px; }
+    .iw h3 { margin:10px 0 4px; font-size:18px; font-weight:700; }
+    .iw .group { color:#374151; font-size:13px; margin-bottom:8px; }
+    .iw .addr { margin-bottom:8px; }
+    .iw .addr-link { font-size:15px; font-weight:600; color:#110057; text-decoration:underline; }
+    .iw .addr-link:hover { text-decoration:none; }
+    .iw .btn-learn {
+      display:block; width:100%; box-sizing:border-box; text-align:center;
+      padding:12px 14px; background:#110057; color:#fff; border-radius:10px;
+      text-decoration:none; font-family:'Inter', Arial, sans-serif; font-weight:600;
+      margin-top:10px; white-space:normal; overflow:hidden; text-overflow:ellipsis;
+    }
 
     /* Icon-only controls */
-    .icon-btn{border:none;background:none;padding:6px;border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;color:var(--dark);}
-    .icon-btn:hover{background:#f3f4f6;}
-    .icon-btn svg{width:18px;height:18px;}
+    .icon-btn { border:none; background:none; padding:6px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; color:var(--dark); }
+    .icon-btn:hover { background:#f3f4f6; }
+    .icon-btn svg { width:18px; height:18px; }
 
     /* Mobile drawer */
-    .menu-btn{display:none;position:absolute;top:10px;left:10px;z-index:1100;background:#110057;color:#fff;border:none;padding:10px 12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.2);}
-    .menu-btn:focus{outline:2px solid #4A00E2;outline-offset:2px;}
-    .backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;}
-    .backdrop.show{display:block;}
+    .menu-btn {
+      display:none; position:absolute; top:10px; left:10px; z-index:1100;
+      background:#110057; color:#fff; border:none; padding:10px 12px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,.2);
+    }
+    .menu-btn:focus { outline:2px solid #4A00E2; outline-offset:2px; }
+    .backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:999; }
+    .backdrop.show { display:block; }
 
     /* Desktop sidebar toggle */
-    @media (min-width:769px){.desk-toggle{display:inline-flex;}}
-    .desk-toggle{position:absolute;top:8px;right:12px;z-index:3000;background:#110057;color:#fff;border:none;padding:8px 10px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.2);align-items:center;gap:6px;cursor:pointer;display:inline-flex;}
-    .desk-toggle .icon{transition:transform .2s ease;}
-    .desk-toggle-floating{position:fixed!important;top:12px!important;left:12px!important;right:auto!important;z-index:3000!important;display:inline-flex!important;}
-    .desk-toggle .icon.flipped{transform:rotate(180deg);}
-    .app .sidebar{transition:transform .3s ease;}
-    .app.sidebar-collapsed{grid-template-columns:0 1fr !important;}
-    .app.sidebar-collapsed .sidebar{transform:translateX(-100%);}
-    .app.sidebar-collapsed .desk-toggle{position:fixed!important;top:12px!important;left:12px!important;right:auto!important;}
-    .app.sidebar-collapsed .desk-toggle .icon{transform:rotate(180deg);}
+    @media (min-width: 769px) { .desk-toggle { display:inline-flex; } }
+    .desk-toggle {
+      position:absolute; top:8px; right:12px; z-index:3000; background:#110057; color:#fff; border:none;
+      padding:8px 10px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,.2); gap:6px; cursor:pointer; display:inline-flex;
+    }
+    .desk-toggle .icon { transition: transform .2s ease; }
+    .desk-toggle-floating { position:fixed !important; top:12px !important; left:12px !important; right:auto !important; z-index:3000 !important; display:inline-flex !important; }
+    .desk-toggle .icon.flipped { transform: rotate(180deg); }
+
+    .app .sidebar { transition: transform .3s ease; }
+    .app.sidebar-collapsed { grid-template-columns: 0 1fr !important; }
+    .app.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+    .app.sidebar-collapsed .desk-toggle { position:fixed !important; top:12px !important; left:12px !important; right:auto !important; }
+    .app.sidebar-collapsed .desk-toggle .icon { transform: rotate(180deg); }
 
     /* Responsive */
-    @media (max-width:768px){
-      .app{grid-template-columns:1fr;grid-template-rows:1fr;}
-      .sidebar{position:fixed;top:0;left:0;height:100%;width:80%;max-width:320px;transform:translateX(-100%);transition:transform .3s ease;z-index:1000;box-shadow:2px 0 8px rgba(0,0,0,0.2);}
-      .sidebar.open{transform:translateX(0);}
-      #map{grid-row:1/2;height:100vh;}
-      .menu-btn{display:inline-flex;align-items:center;gap:8px;}
-      .desk-toggle{display:none!important;}
+    @media (max-width: 768px){
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position:fixed; top:0; left:0; height:100%; width:80%; max-width:320px;
+        transform:translateX(-100%); transition:transform .3s ease; z-index:1000; box-shadow:2px 0 8px rgba(0,0,0,.2);
+      }
+      .sidebar.open { transform:translateX(0); }
+      #map { grid-row:1/2; height:100vh; }
+      .menu-btn { display:inline-flex; align-items:center; gap:8px; }
+      .maplibregl-popup-content { width: var(--iw-w-sm); }
+      .desk-toggle { display:none !important; }
     }
   </style>
 
-  <!-- EMBED toggler (optional) -->
-  <script>
-    (function () {
-      try {
-        const params = new URLSearchParams(location.search);
-        if (params.get('embed') === '1') {
-          document.documentElement.classList.add('embed');
-          const apply = () => {
-            document.body && document.body.classList.add('embed');
-            if (params.get('chrome') === '0') {
-              document.body && document.body.classList.add('embed-chrome-off');
-            }
-          };
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', apply, { once: true });
-          } else {
-            apply();
-          }
-        }
-      } catch(_) {}
-    })();
-  </script>
+  <!-- Load your config FIRST -->
+  <script src="config.js"></script>
 </head>
 <body>
   <!-- Mobile hamburger -->
@@ -137,7 +166,7 @@
     <aside id="sidebar" class="sidebar" role="complementary" aria-label="Filters and locations">
       <header>
         <h1 style="display:none;">Intermountain Health</h1>
-        <img id="brand-logo" src="logo-light.png" alt="Intermountain Health" style="max-width:180px;height:auto;" />
+        <img id="brand-logo" src="" alt="Intermountain Health" style="max-width:180px; height:auto;" />
         <button class="desk-toggle" aria-label="Hide sidebar" data-state="open" title="Hide sidebar">
           <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -148,7 +177,7 @@
         <div class="meta" id="summary">Loading places…</div>
       </header>
 
-      <div class="controls" id="controls">
+      <div class="controls" id="controls-block">
         <div class="search">
           <input id="search" type="search" placeholder="Search by name, market or keywords" />
         </div>
@@ -179,7 +208,7 @@
         </div>
       </div>
 
-      <div class="filters" id="filters">
+      <div class="filters" id="filters-block">
         <h3>Markets</h3>
         <div id="tag-filters" class="chips"></div>
       </div>
@@ -190,393 +219,341 @@
     <div id="map" role="application" aria-label="Map"></div>
   </div>
 
-  <!-- Load config AFTER markup -->
-  <script src="config.js"></script>
-
   <script>
-    // ======== UTIL ========
-    const $  = (sel)=>document.querySelector(sel);
-    const $$ = (sel)=>Array.from(document.querySelectorAll(sel));
-    const norm = (s)=>String(s||'').trim().toLowerCase();
-    const uniq = (arr)=>Array.from(new Set((arr||[]).filter(Boolean)));
-    const parseList = (val)=>val? val.split(",").map(s=>s.trim()).filter(Boolean) : [];
-    const escapeHtml=(str)=>String(str||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
-    const haversine=(a,b)=>{const R=6371000,toRad=d=>d*Math.PI/180,dLat=toRad(b.lat-a.lat),dLng=toRad(b.lng-a.lng),lat1=toRad(a.lat),lat2=toRad(b.lat),s=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));};
+    // ========= Utilities =========
+    const cfg = window.APP_CONFIG;
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+    const $  = (sel) => document.querySelector(sel);
+    const norm = (s) => String(s || "").trim().toLowerCase();
+    const uniq = (arr)=> Array.from(new Set((arr||[]).filter(Boolean))).sort((a,b)=> a.localeCompare(b));
+    const parseList = (val)=> val ? val.split(",").map(s=>s.trim()).filter(Boolean) : [];
+    const toRad = d => d * Math.PI / 180;
+    function haversine(a, b) {
+      const R = 6371000;
+      const dLat = toRad(b.lat - a.lat);
+      const dLng = toRad(b.lng - a.lng);
+      const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+      const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    }
+    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
 
-    // SVGs
-    const svgChevron=()=>'<svg class="chev" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-    const svgEye=()=>'<svg class="eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>';
-    const svgEyeOff=()=>'<svg class="eyeoff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>';
-
-    // ======== CONFIG BRIDGE ========
-    const CFG = (function(){
-      const c = window.APP_CONFIG || {};
-      return {
-        logo: (c.MAP && c.MAP.logo) || 'logo-light.png',
-        mapStyleUrl: (c.MAP && c.MAP.style) || 'https://demotiles.maplibre.org/style.json',
-        center: (c.MAP && c.MAP.center) || {lat:37.0953,lng:-113.5786},
-        zoom: (c.MAP && c.MAP.zoom) || 9,
-        minZoom: (c.MAP && c.MAP.minZoom) || 3,
-        iconsByGroup: (c.MAP && c.MAP.iconsByGroup) || {},
-        hideControls: !!(c.UI && c.UI.hideControls),
-        hideFilters: !!(c.UI && c.UI.hideFilters),
-        clustering: c.UI && typeof c.UI.clustering === 'boolean' ? c.UI.clustering : true,
-        sheetId: c.DATA && c.DATA.sheetId,
-        sheetRange: c.DATA && c.DATA.sheetRange,
-        sheetsKey: c.DATA && c.DATA.sheetsApiKey
-      };
-    })();
-
-    // ======== SHEETS ========
-    async function fetchSheetRows(){
-      if(!CFG.sheetId || !CFG.sheetRange || !CFG.sheetsKey){
-        throw new Error("Missing Sheets config (sheetId/sheetRange/sheetsApiKey).");
-      }
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${CFG.sheetId}/values/${encodeURIComponent(CFG.sheetRange)}?key=${CFG.sheetsKey}`;
+    // ========= Data (Google Sheets) =========
+    async function fetchSheetRows() {
+      const { sheetsApiKey, sheetId, sheetRange } = cfg.DATA;
+      const url = 'https://sheets.googleapis.com/v4/spreadsheets/' +
+                  encodeURIComponent(sheetId) +
+                  '/values/' + encodeURIComponent(sheetRange) +
+                  '?key=' + encodeURIComponent(sheetsApiKey);
       const res = await fetch(url);
-      if(!res.ok){
-        const msg = await res.text().catch(()=>res.statusText);
-        throw new Error(`Sheets API ${res.status}: ${msg}`);
+      if (!res.ok) {
+        let msg = 'Sheets API error ' + res.status;
+        try { const j = await res.json(); if (j.error && j.error.message) msg += ': ' + j.error.message; } catch {}
+        throw new Error(msg);
       }
       const json = await res.json();
       const rows = json.values || [];
-      if(!rows.length) return [];
-      const headers = rows[0].map(h=>(h||'').trim());
-      return rows.slice(1).map(r => Object.fromEntries(headers.map((h,i)=>[h, r[i]||''])));
+      if (!rows.length) return [];
+      const headers = rows[0].map(h => (h||'').trim());
+      return rows.slice(1).map(r => Object.fromEntries(headers.map((h,i)=> [h, r[i] || ""])));
     }
 
-    function normalizeRow(row){
-      const keywords   = parseList(row["Keywords"]||row["Notes"]||"");
-      const tagsPretty = parseList(row["Tags"]||"");
-      const tagsNorm   = tagsPretty.map(s=>s.toLowerCase());
+    function normalizeRow(row) {
+      const keywords   = parseList(row["Keywords"] || row["Notes"] || "");
+      const tagsPretty = parseList(row["Tags"] || "");
+      const tagsNorm   = tagsPretty.map(s => s.trim().toLowerCase());
       return {
-        name: row["Name"]||"Untitled",
-        address: row["Address"]||"",
-        lat: parseFloat(row["Latitude"])||null,
-        lng: parseFloat(row["Longitude"])||null,
-        group: row["Group"]||"",
+        name: row["Name"] || "Untitled",
+        address: row["Address"] || "",
+        lat: parseFloat(row["Latitude"]) || null,
+        lng: parseFloat(row["Longitude"]) || null,
+        group: row["Group"] || "",
         tags: tagsPretty,
         tagsNorm,
-        iconUrl: row["Icon URL"]||"",
-        headerImage: row["Header Image URL"]||"",
-        moreUrl: row["Learn More URL"] || row["URL"] || "",
-        useHtml: String(row["Use HTML"]||"").toLowerCase()==="true",
+        iconUrl: row["Icon URL"] || "",
+        headerImage: row["Header Image URL"] || "",
+        moreUrl: row["Learn More URL"] || row["Button Link"] || row["URL"] || "",
+        useHtml: String(row["Use HTML"] || "").toLowerCase() === "true",
         keywordsText: keywords.join(", "),
-        groupOrder: Number.parseInt(row["Group Order"],10) || 9999
+        groupOrder: Number.parseInt(row["Group Order"], 10) || 9999
       };
     }
 
-    // ======== MAPLIBRE LAYERS / DATA ========
-    let map, userPos=null, allPlaces=[], filteredPlaces=[], popup;
-    let sidebarCollapsed=false;
-    const groupState={}; // { [group]: { collapsed:boolean, faded:boolean } }
-
-    function placesToGeoJSON(places){
-      return {
-        type: "FeatureCollection",
-        features: places.filter(p=>p.lat && p.lng).map(p=>({
-          type: "Feature",
-          properties: {
-            name: p.name,
-            address: p.address,
-            group: p.group || "Other",
-            tags: p.tags.join(", "),
-            moreUrl: p.moreUrl,
-            headerImage: p.headerImage,
-            iconSrc: resolveIconSrc(p)
-          },
-          geometry: { type: "Point", coordinates: [p.lng, p.lat] }
-        }))
-      };
+    // ========= Icons =========
+    function normalizeIconValue(v) {
+      if (!v) return "";
+      const raw = String(v).trim();
+      if (/^https?:\/\//i.test(raw)) return raw;           // absolute
+      if (/\.(png|jpe?g|svg|webp)$/i.test(raw)) return raw; // root/relative filename
+      // token mapped via config
+      const token = raw.toLowerCase().replace(/[^a-z]/g, "");
+      const tokenMap = {};
+      Object.entries(cfg.MAP.iconsByGroup || {}).forEach(([g, file])=>{
+        tokenMap[g.toLowerCase().replace(/[^a-z]/g,"")] = file;
+      });
+      return tokenMap[token] || "";
+    }
+    function resolveIconSrc(place) {
+      const fromCell = normalizeIconValue(place.iconUrl);
+      if (fromCell) return fromCell;
+      const file = (cfg.MAP.iconsByGroup || {})[place.group] || "";
+      return file || "";
     }
 
-    function resolveIconSrc(place){
-      // 1) per-row override
-      if (place.iconUrl) {
-        const raw = place.iconUrl.trim();
-        if (/^https?:\/\//i.test(raw)) return raw;    // URL
-        if (/\.(png|jpe?g|svg|webp)$/i.test(raw)) return raw; // filename at root/relative
-      }
-      // 2) per-group fallback from config
-      const grp = place.group || "";
-      if (CFG.iconsByGroup[grp]) return CFG.iconsByGroup[grp];
-      return ""; // default style marker (circle) will be used
+    // ========= Popup HTML =========
+    function markerHtml(place) {
+      const safeName = escapeHtml(place.name);
+      const addrHtml = place.address
+        ? '<div class="addr"><a class="addr-link" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place.address) + '" target="_blank" rel="noopener">' + escapeHtml(place.address) + '</a></div>'
+        : '';
+      const group = place.group ? '<div class="group">'+escapeHtml(place.group)+'</div>' : '';
+      const tag = (place.tags && place.tags[0]) ? '<div class="tagpill">'+escapeHtml(place.tags[0])+'</div>' : '';
+      const headerImg = place.headerImage ? '<div class="hero"><img src="'+place.headerImage+'" alt="'+safeName+'"/>'+tag+'</div>' : '';
+      const learnHref = place.moreUrl || ('https://www.google.com/search?q=' + encodeURIComponent(place.name + ' ' + (place.address||'')));
+      return [
+        '<div class="iw">',
+          headerImg,
+          '<div class="pad">',
+            '<h3>'+safeName+'</h3>',
+            group,
+            addrHtml,
+            '<a class="btn-learn" href="'+learnHref+'" target="_blank" rel="noopener">Learn More</a>',
+          '</div>',
+        '</div>'
+      ].join('');
     }
 
-    async function loadMarkerIcons(images){
-      // load unique non-empty icon URLs into the map style
-      const unique = uniq(images.filter(Boolean));
-      for (const url of unique){
-        // Use URL itself as the image id (safe enough if under same origin)
-        try{
-          await new Promise((resolve,reject)=>{
-            map.loadImage(url,(err,img)=>{
-              if(err || !img) return reject(err||new Error("img load failed"));
-              const id = url;
-              if (!map.hasImage(id)) map.addImage(id,img);
-              resolve();
-            });
-          });
-        }catch(e){
-          console.warn("Icon failed to load:", url, e);
+    // ========= Sidebar UI state =========
+    const groupState = {}; // { [group]: { collapsed:boolean, faded:boolean } }
+    function buildFiltersUI(allPlaces) {
+      const allPretty = [].concat.apply([], allPlaces.map(p=> p.tags || []));
+      const uniquePretty = uniq(allPretty);
+      const items = uniquePretty.map(labelPretty => ({ label: labelPretty, value: norm(labelPretty) }));
+      const wrap = $("#tag-filters");
+      wrap.innerHTML = items.map(it => `<label class="chip"><input type="checkbox" value="${it.value}" checked /> ${escapeHtml(it.label)}</label>`).join('');
+      wrap.addEventListener('change', applyFilters);
+    }
+
+    // ========= Map & Layers (MapLibre) =========
+    let map;
+    let allPlaces = [];
+    let userPos = null;
+
+    // We keep a parallel array so we can go from feature -> place quickly
+    let featureCollection = { type: "FeatureCollection", features: [] };
+
+    // Load icon images into the style so 'icon-image' can reference them
+    async function preloadMarkerImages(map, iconUrls) {
+      const unique = Array.from(new Set(iconUrls.filter(Boolean)));
+      const loadImage = (url) => new Promise((resolve) => {
+        map.loadImage(url, (err, img) => resolve({ url, ok: !err && img, img }));
+      });
+      const results = await Promise.all(unique.map(loadImage));
+      results.forEach(({url, ok, img})=>{
+        if (ok && img) {
+          // Use the URL string itself as the name (works fine).
+          if (!map.hasImage(url)) map.addImage(url, img);
         }
-      }
+      });
     }
 
-    function addClusterSourceAndLayers(geojson){
-      if (map.getSource('places')) map.removeSource('places');
-      // Remove old layers if exist
-      ['clusters','cluster-count','unclustered','unclustered-symbol'].forEach(id=>{
-        if (map.getLayer(id)) map.removeLayer(id);
-      });
-
-      map.addSource('places', {
-        type: 'geojson',
-        data: geojson,
-        cluster: CFG.clustering,
-        clusterMaxZoom: 14,
-        clusterRadius: 50
-      });
-
-      if (CFG.clustering){
-        // Cluster bubbles
-        map.addLayer({
-          id: 'clusters',
-          type: 'circle',
-          source: 'places',
-          filter: ['has','point_count'],
-          paint: {
-            'circle-color': '#4A00E2',
-            'circle-radius': [
-              'step',['get','point_count'],
-              16, 10, 20, 30, 26
-            ],
-            'circle-opacity': 0.9
+    function buildGeoJSON(places){
+      const feats = [];
+      places.forEach((p, idx)=>{
+        if (!(p.lat && p.lng)) return;
+        const iconSrc = resolveIconSrc(p) || ''; // may be empty => we’ll render default circle fallback
+        feats.push({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [p.lng, p.lat] },
+          properties: {
+            idx,
+            name: p.name,
+            group: p.group || "Other",
+            iconKey: iconSrc, // used by symbol layer as icon-image
+            tags: (p.tags || []).join(",")
           }
         });
-        // Cluster count labels
-        map.addLayer({
-          id: 'cluster-count',
-          type: 'symbol',
-          source: 'places',
-          filter: ['has','point_count'],
-          layout: {
-            'text-field': ['to-string',['get','point_count']],
-            'text-font': ['Open Sans Bold','Arial Unicode MS Bold'],
-            'text-size': 12
-          },
-          paint: { 'text-color':'#ffffff' }
-        });
-      }
-
-      // Unclustered points (circle as fallback if no icon)
-      map.addLayer({
-        id: 'unclustered',
-        type: 'circle',
-        source: 'places',
-        filter: ['!',['has','point_count']],
-        paint: {
-          'circle-color': '#110057',
-          'circle-radius': 6,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-          'circle-opacity': [
-            'case',
-            ['==',['get','__faded'],true],
-            0.35,
-            1
-          ]
-        }
       });
-
-      // Symbol layer for icons (uses property iconSrc if available)
-      map.addLayer({
-        id: 'unclustered-symbol',
-        type: 'symbol',
-        source: 'places',
-        filter: ['all',['!',['has','point_count']],['has','iconSrc'],['!=',['get','iconSrc'],'']],
-        layout: {
-          'icon-image': ['get','iconSrc'],
-          'icon-size': 0.7,
-          'icon-allow-overlap': true,
-          'icon-ignore-placement': true
-        }
-      });
-
-      // Click handlers
-      map.on('click','clusters', (e)=>{
-        const features = map.queryRenderedFeatures(e.point,{layers:['clusters']});
-        const clusterId = features[0].properties.cluster_id;
-        const source = map.getSource('places');
-        source.getClusterExpansionZoom(clusterId,(err,zoom)=>{
-          if(err) return;
-          map.easeTo({center: features[0].geometry.coordinates, zoom});
-        });
-      });
-
-      const openPopupForFeature = (f)=>{
-        const p = f.properties || {};
-        const name = escapeHtml(p.name);
-        const address = escapeHtml(p.address||'');
-        const group = escapeHtml(p.group||'');
-        const more = p.moreUrl ? `<a href="${p.moreUrl}" target="_blank" rel="noopener">Learn More</a>` : '';
-        const header = p.headerImage ? `<div style="position:relative;width:100%;height:150px;overflow:hidden;margin-bottom:8px;"><img src="${p.headerImage}" style="width:100%;height:100%;object-fit:cover"/></div>` : '';
-        const html = `
-          <div class="iw" style="width:${Math.min(300, window.innerWidth-40)}px;">
-            ${header}
-            <div class="pad" style="padding:12px 14px 14px;">
-              <h3 style="margin:10px 0 4px;font-size:18px;font-weight:700;">${name}</h3>
-              ${group?`<div class="group" style="color:#374151;font-size:13px;margin-bottom:8px;">${group}</div>`:''}
-              ${address?`<div class="addr" style="margin-bottom:8px;"><a class="addr-link" style="font-size:15px;font-weight:600;color:#110057;text-decoration:underline" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}" target="_blank" rel="noopener">${address}</a></div>`:''}
-              ${more?`<a class="btn-learn" href="${p.moreUrl}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;text-align:center;padding:12px 14px;background:#110057;color:#fff;border-radius:10px;text-decoration:none;font-family:'Inter',Arial,sans-serif;font-weight:600;margin-top:10px;">Learn More</a>`:''}
-            </div>
-          </div>
-        `;
-        popup.setLngLat(f.geometry.coordinates).setHTML(html).addTo(map);
-      };
-
-      map.on('click','unclustered', (e)=>{
-        const f = e.features && e.features[0];
-        if(!f) return;
-        openPopupForFeature(f);
-      });
-      map.on('click','unclustered-symbol', (e)=>{
-        const f = e.features && e.features[0];
-        if(!f) return;
-        openPopupForFeature(f);
-      });
-
-      // cursor
-      map.on('mouseenter','clusters',()=>map.getCanvas().style.cursor='pointer');
-      map.on('mouseleave','clusters',()=>map.getCanvas().style.cursor='');
-      map.on('mouseenter','unclustered',()=>map.getCanvas().style.cursor='pointer');
-      map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
-      map.on('mouseenter','unclustered-symbol',()=>map.getCanvas().style.cursor='pointer');
-      map.on('mouseleave','unclustered-symbol',()=>map.getCanvas().style.cursor='');
+      return { type: "FeatureCollection", features: feats };
     }
 
-    // ======== UI (LIST, FILTERS, SEARCH) ========
-    function groupBy(arr,keyFn){
-      const m=new Map();
+    function addClusterLayers(map){
+      // Clusters (circles)
+      map.addLayer({
+        id: "clusters",
+        type: "circle",
+        source: "places",
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": "#4A00E2",
+          "circle-radius": [
+            "step",
+            ["get", "point_count"],
+            16,    // < 10
+            10, 20, // 10–24
+            25, 24  // 25+
+          ],
+          "circle-opacity": 0.9
+        }
+      });
+
+      // Cluster count labels
+      map.addLayer({
+        id: "cluster-count",
+        type: "symbol",
+        source: "places",
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+          "text-size": 12
+        },
+        paint: { "text-color": "#fff" }
+      });
+
+      // Unclustered (custom icons if available, else small dot)
+      map.addLayer({
+        id: "unclustered-points",
+        type: "symbol",
+        source: "places",
+        filter: ["!", ["has", "point_count"]],
+        layout: {
+          "icon-image": [
+            "case",
+            ["!=", ["get","iconKey"], ""],
+            ["get","iconKey"],
+            // fallback name (must exist) – we’ll skip and use circle fallback via another layer
+            ""
+          ],
+          "icon-size": 0.7,
+          "icon-allow-overlap": true
+        }
+      });
+
+      // Fallback small circle for points without a custom icon
+      map.addLayer({
+        id: "unclustered-fallback",
+        type: "circle",
+        source: "places",
+        filter: ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]],
+        paint: {
+          "circle-color": "#2E2E2E",
+          "circle-radius": 5,
+          "circle-stroke-color": "#fff",
+          "circle-stroke-width": 1.5
+        }
+      });
+    }
+
+    function openPopupAt(lngLat, html) {
+      // Wider popup; MapLibre also enforces maxWidth on inline, but we override CSS too.
+      new maplibregl.Popup({ closeOnMove: true, maxWidth: '420px' })
+        .setLngLat(lngLat)
+        .setHTML(html)
+        .addTo(map);
+    }
+
+    // ========= Sidebar rendering + interactions =========
+    function groupBy(arr, keyFn) {
+      const m = new Map();
       (arr||[]).forEach(it=>{
-        const k=keyFn(it)||"Other";
-        if(!m.has(k)) m.set(k,[]);
+        const k = keyFn(it) || "Other";
+        if (!m.has(k)) m.set(k, []);
         m.get(k).push(it);
       });
       return m;
     }
 
-    function rebuildSourceData(){
-      // propagate per-group fade state to feature property __faded
-      const geo = placesToGeoJSON(filteredPlaces);
-      for (const f of geo.features){
-        const g = f.properties.group || "Other";
-        f.properties.__faded = !!(groupState[g] && groupState[g].faded);
-      }
-      if (map.getSource('places')) {
-        map.getSource('places').setData(geo);
-      }
-    }
+    function svgChevron(){ return '<svg class="chev" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'; }
+    function svgEye(){ return '<svg class="eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>'; }
+    function svgEyeOff(){ return '<svg class="eyeoff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>'; }
 
-    function renderList(places){
+    function renderList(places) {
       const list = $("#list");
       list.innerHTML = "";
 
-      const grouped = groupBy(places,p=>p.group);
-      // compute order by min groupOrder
+      const grouped = groupBy(places, p => p.group);
+
+      // Compute group order from data (min groupOrder)
       const orderMap = new Map();
-      grouped.forEach((arr,g)=>{
-        const ord = Math.min(...arr.map(p=>p.groupOrder ?? 9999));
-        orderMap.set(g, Number.isFinite(ord)?ord:9999);
+      grouped.forEach((arr, g) => {
+        const ord = Math.min(...arr.map(p => p.groupOrder ?? 9999));
+        orderMap.set(g, Number.isFinite(ord) ? ord : 9999);
       });
+
       const groupsSorted = Array.from(grouped.keys()).sort((a,b)=>{
-        const oa=orderMap.get(a)??9999, ob=orderMap.get(b)??9999;
-        return (oa-ob)||a.localeCompare(b);
+        const oa = orderMap.get(a) ?? 9999, ob = orderMap.get(b) ?? 9999;
+        return (oa - ob) || a.localeCompare(b);
       });
 
       groupsSorted.forEach(g=>{
-        if(!groupState[g]) groupState[g]={collapsed:false,faded:false};
+        if (!groupState[g]) groupState[g] = { collapsed:false, faded:false };
 
         const section = document.createElement("div");
-        section.className="group-section";
+        section.className = "group-section";
 
-        const head=document.createElement("div");
-        head.className="group-head"+(groupState[g].faded ? " faded":"");
-        head.dataset.group=g;
+        const head = document.createElement("div");
+        head.className = "group-head" + (groupState[g].faded ? " faded" : "");
+        head.dataset.group = g;
 
-        const titleWrap=document.createElement("div");
-        titleWrap.className="title";
-        titleWrap.textContent=g||"Other";
+        const title = document.createElement("div");
+        title.textContent = g || "Other";
 
-        const controls=document.createElement("div");
-        controls.className="controls";
+        const controls = document.createElement("div");
+        controls.className = "controls";
 
-        const eyeBtn=document.createElement("button");
-        eyeBtn.className="iconbtn eye-toggle";
-        eyeBtn.title = groupState[g].faded? "Show group at full opacity":"Fade this group";
-        eyeBtn.innerHTML = groupState[g].faded? svgEyeOff():svgEye();
-        eyeBtn.addEventListener("click",(e)=>{
+        const eyeBtn = document.createElement("button");
+        eyeBtn.className = "iconbtn eye-toggle";
+        eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group";
+        eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye();
+        eyeBtn.addEventListener("click", (e)=>{
           e.stopPropagation();
-          groupState[g].faded=!groupState[g].faded;
-          head.classList.toggle("faded",groupState[g].faded);
-          eyeBtn.innerHTML = groupState[g].faded? svgEyeOff():svgEye();
-          eyeBtn.title = groupState[g].faded? "Show group at full opacity":"Fade this group";
-          section.querySelectorAll(".card").forEach(el=>el.classList.toggle("faded",groupState[g].faded));
-          rebuildSourceData(); // update map opacity
+          groupState[g].faded = !groupState[g].faded;
+          head.classList.toggle("faded", groupState[g].faded);
+          eyeBtn.innerHTML = groupState[g].faded ? svgEyeOff() : svgEye();
+          eyeBtn.title = groupState[g].faded ? "Show group at full opacity" : "Fade this group";
+          // We emulate fade by lowering opacity on symbol layer using filters + a paint override would be complex;
+          // Easier: we visually fade list items and let map remain (clean).
+          section.querySelectorAll(".card").forEach(el=> el.classList.toggle("faded", groupState[g].faded));
         });
 
-        const chevBtn=document.createElement("button");
-        chevBtn.className="iconbtn";
-        chevBtn.innerHTML=svgChevron();
+        const chevBtn = document.createElement("button");
+        chevBtn.className = "iconbtn";
+        chevBtn.innerHTML = svgChevron();
 
         controls.appendChild(eyeBtn);
         controls.appendChild(chevBtn);
-        head.appendChild(titleWrap);
+        head.appendChild(title);
         head.appendChild(controls);
         section.appendChild(head);
 
-        const body=document.createElement("div");
-        body.className="group-body";
-        if(groupState[g].collapsed) head.classList.add("collapsed");
-        if(groupState[g].faded) body.classList.add("faded");
+        const body = document.createElement("div");
+        body.className = "group-body";
+        if (groupState[g].collapsed) head.classList.add("collapsed");
+        if (groupState[g].faded) body.classList.add("faded");
 
-        head.addEventListener("click",(e)=>{
+        head.addEventListener("click", (e)=>{
           if (e.target.closest(".eye-toggle")) return;
-          groupState[g].collapsed=!groupState[g].collapsed;
-          head.classList.toggle("collapsed",groupState[g].collapsed);
+          groupState[g].collapsed = !groupState[g].collapsed;
+          head.classList.toggle("collapsed", groupState[g].collapsed);
         });
 
         grouped.get(g).forEach(p=>{
-          const item=document.createElement("div");
-          item.className="card";
-          if(groupState[g].faded) item.classList.add("faded");
-
+          const item = document.createElement("div");
+          item.className = "card";
+          if (groupState[g].faded) item.classList.add("faded");
           const iconSrc = resolveIconSrc(p);
-          const iconEl = iconSrc? `<img class="pin-img" src="${iconSrc}" alt=""/>` : '';
+          const iconEl = iconSrc ? `<img class="pin-img" src="${iconSrc}" alt=""/>` : '';
+          item.innerHTML = `${iconEl}<div><h4>${escapeHtml(p.name)}</h4><div class="meta-row">${(p.tags||[]).join(' · ')}</div></div>`;
 
-          item.innerHTML = `${iconEl}<div><h4>${escapeHtml(p.name)}</h4><div class="meta">${(p.tags||[]).join(' · ')}</div></div>`;
-          item.addEventListener("click",()=>{
-            // zoom and popup
-            const coords=[p.lng,p.lat];
-            map.easeTo({center:coords, zoom: Math.max(map.getZoom(), 15)});
-            popup.remove();
-            const f = { geometry:{coordinates:coords}, properties:{
-              name:p.name,address:p.address,group:p.group,moreUrl:p.moreUrl,headerImage:p.headerImage
-            }};
-            const fake = { features:[f] };
-            // small delay to let easeTo run smoothly
-            setTimeout(()=> {
-              popup.setLngLat(coords).setHTML(`
-                <div class="iw" style="width:${Math.min(300, window.innerWidth-40)}px;">
-                  ${p.headerImage?`<div style="position:relative;width:100%;height:150px;overflow:hidden;margin-bottom:8px;"><img src="${p.headerImage}" style="width:100%;height:100%;object-fit:cover"/></div>`:''}
-                  <div class="pad" style="padding:12px 14px 14px;">
-                    <h3 style="margin:10px 0 4px;font-size:18px;font-weight:700;">${escapeHtml(p.name)}</h3>
-                    ${p.group?`<div class="group" style="color:#374151;font-size:13px;margin-bottom:8px;">${escapeHtml(p.group)}</div>`:''}
-                    ${p.address?`<div class="addr" style="margin-bottom:8px;"><a class="addr-link" style="font-size:15px;font-weight:600;color:#110057;text-decoration:underline" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.address)}" target="_blank" rel="noopener">${escapeHtml(p.address)}</a></div>`:''}
-                    ${p.moreUrl?`<a class="btn-learn" href="${p.moreUrl}" target="_blank" rel="noopener" style="display:block;width:100%;box-sizing:border-box;text-align:center;padding:12px 14px;background:#110057;color:#fff;border-radius:10px;text-decoration:none;font-family:'Inter',Arial,sans-serif;font-weight:600;margin-top:10px;">Learn More</a>`:''}
-                  </div>
-                </div>`).addTo(map);
-            }, 300);
+          item.addEventListener("click", ()=>{
+            // Fly to and open popup at the feature coordinates (find the feature by idx)
+            const idx = allPlaces.indexOf(p);
+            const feat = featureCollection.features.find(f => f.properties.idx === idx);
+            if (!feat) return;
+            const [lng, lat] = feat.geometry.coordinates;
+            map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 15), duration: 600 });
+            openPopupAt([lng, lat], markerHtml(p));
           });
 
           body.appendChild(item);
@@ -586,193 +563,232 @@
         list.appendChild(section);
       });
 
-      $("#summary").textContent = places.length + " place" + (places.length===1?"":"s") + " shown";
+      $("#summary").textContent = places.length + " place" + (places.length===1 ? "" : "s") + " shown";
     }
 
-    function buildFiltersUI(){
-      const allPretty = [].concat.apply([], allPlaces.map(p=>p.tags||[]));
-      const uniquePretty = uniq(allPretty);
-      const items = uniquePretty.map(labelPretty=>({label:labelPretty, value: norm(labelPretty)}));
-
-      const tagWrap=$("#tag-filters");
-      tagWrap.innerHTML = items.map(it=>`<label class="chip"><input type="checkbox" value="${it.value}" checked /> ${escapeHtml(it.label)}</label>`).join('');
-      tagWrap.addEventListener('change', applyFilters);
-    }
-
-    function applyFilters(){
+    // ========= Filtering =========
+    function applyFilters() {
       const q = $("#search").value.trim().toLowerCase();
-      const activeTags = new Set($$("#tag-filters input:checked").map(i=>i.value));
-      const results = [];
+      const activeTags = new Set($$("#tag-filters input:checked").map(i=> i.value));
 
-      allPlaces.forEach(p=>{
+      // Filter places array to a visible list used for the sidebar only (map still shows all points; optional to filter source)
+      const matches = allPlaces.filter(p=>{
+        // Tags (markets) — visible if any normalized tag is checked
         let ok = true;
-        const ptags = p.tagsNorm || [];
-        if (activeTags.size>0){
-          ok = ptags.some(t=>activeTags.has(t));
+        if (activeTags.size > 0) {
+          const ptags = p.tagsNorm || [];
+          ok = ptags.some(t => activeTags.has(t));
         }
-        if (ok && q){
-          const hay = (p.name+" "+p.group+" "+(p.tags||[]).join(" ")+" "+p.keywordsText).toLowerCase();
-          if (hay.indexOf(q)===-1) ok=false;
+        // Search
+        if (ok && q) {
+          const hay = (p.name + " " + p.group + " " + (p.tags||[]).join(" ") + " " + p.keywordsText).toLowerCase();
+          if (!hay.includes(q)) ok = false;
         }
-        if (ok) results.push(p);
+        return ok;
       });
 
-      if (userPos && $("#sort").value==='distance'){
-        results.forEach(p=>p._distanceM = haversine(userPos,{lat:p.lat,lng:p.lng}));
-        results.sort((a,b)=>a._distanceM - b._distanceM);
+      // Sort list
+      if (userPos && $("#sort").value === 'distance') {
+        matches.forEach(p => p._distanceM = haversine(userPos, {lat: p.lat, lng: p.lng}));
+        matches.sort((a,b)=> a._distanceM - b._distanceM);
       } else {
-        results.sort((a,b)=>a.name.localeCompare(b.name));
+        matches.sort((a,b)=> a.name.localeCompare(b.name));
       }
 
-      filteredPlaces = results;
-      renderList(filteredPlaces);
-      rebuildSourceData();
-      fitToFiltered();
+      renderList(matches);
     }
 
-    function fitToFiltered(){
-      const coords = filteredPlaces.map(p=>[p.lng,p.lat]).filter(([x,y])=>Number.isFinite(x)&&Number.isFinite(y));
-      if(!coords.length) return;
-      if(coords.length===1){
-        map.easeTo({center: coords[0], zoom: Math.max(map.getZoom(), 14)});
-        return;
+    // ========= Sidebar show/hide (desktop) =========
+    (function sidebarToggle(){
+      let desktopSidebarCollapsed = false;
+      const appEl = document.querySelector('.app');
+      const deskToggleBtn = document.querySelector('.desk-toggle');
+      const headerEl = document.querySelector('.sidebar header');
+      function dock(){ headerEl.appendChild(deskToggleBtn); deskToggleBtn.classList.remove('desk-toggle-floating'); deskToggleBtn.querySelector('.icon')?.classList.remove('flipped'); }
+      function floatBtn(){ document.body.appendChild(deskToggleBtn); deskToggleBtn.classList.add('desk-toggle-floating'); deskToggleBtn.querySelector('.icon')?.classList.add('flipped'); }
+      function setCollapsed(v){
+        desktopSidebarCollapsed = !!v;
+        appEl.classList.toggle('sidebar-collapsed', desktopSidebarCollapsed);
+        if (desktopSidebarCollapsed) floatBtn(); else dock();
+        deskToggleBtn.setAttribute('aria-label', desktopSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar');
+        deskToggleBtn.title = desktopSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar';
+        deskToggleBtn.dataset.state = desktopSidebarCollapsed ? 'closed' : 'open';
+        const label = deskToggleBtn.querySelector('.label'); if (label) label.textContent = desktopSidebarCollapsed ? 'Show' : 'Hide';
       }
-      const b = new maplibregl.LngLatBounds();
-      coords.forEach(c=>b.extend(c));
-      map.fitBounds(b,{padding:60,duration:500});
-    }
-
-    // ======== SIDEBAR TOGGLE & MOBILE DRAWER ========
-    const appEl = document.querySelector('.app');
-    const deskToggleBtn = document.querySelector('.desk-toggle');
-    const headerEl = document.querySelector('.sidebar header');
-    function dockToggleToHeader(){
-      if(!deskToggleBtn || !headerEl) return;
-      headerEl.appendChild(deskToggleBtn);
-      deskToggleBtn.classList.remove('desk-toggle-floating');
-      deskToggleBtn.querySelector('.icon')?.classList.remove('flipped');
-    }
-    function floatToggleToViewport(){
-      if(!deskToggleBtn) return;
-      document.body.appendChild(deskToggleBtn);
-      deskToggleBtn.classList.add('desk-toggle-floating');
-      deskToggleBtn.querySelector('.icon')?.classList.add('flipped');
-    }
-    function setDesktopSidebar(collapsed){
-      sidebarCollapsed=!!collapsed;
-      appEl.classList.toggle('sidebar-collapsed',sidebarCollapsed);
-      if (sidebarCollapsed){ floatToggleToViewport(); } else { dockToggleToHeader(); }
-      deskToggleBtn.setAttribute('aria-label', sidebarCollapsed?'Show sidebar':'Hide sidebar');
-      deskToggleBtn.title = sidebarCollapsed?'Show sidebar':'Hide sidebar';
-      deskToggleBtn.dataset.state = sidebarCollapsed?'closed':'open';
-      const label = deskToggleBtn.querySelector('.label'); if (label) label.textContent = sidebarCollapsed?'Show':'Hide';
-    }
-    dockToggleToHeader();
-    if (deskToggleBtn){
-      deskToggleBtn.addEventListener('click',()=>{
+      dock();
+      deskToggleBtn.addEventListener('click', ()=>{
         const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-        if(!isDesktop) return;
-        setDesktopSidebar(!sidebarCollapsed);
+        if (!isDesktop) return;
+        setCollapsed(!desktopSidebarCollapsed);
       });
-    }
-    window.addEventListener('resize',()=>{
-      const isDesktop = window.matchMedia('(min-width: 769px)').matches;
-      if(!isDesktop){
-        if (sidebarCollapsed) setDesktopSidebar(false);
-      } else {
-        if (!sidebarCollapsed) dockToggleToHeader();
-      }
-    });
+      window.addEventListener('resize', ()=>{
+        const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+        if (!isDesktop) { if (desktopSidebarCollapsed) setCollapsed(false); }
+        else { if (!desktopSidebarCollapsed) dock(); }
+      });
+    })();
 
-    const menuBtn = document.querySelector('.menu-btn');
-    const sidebarEl = document.getElementById('sidebar');
-    const backdrop  = document.querySelector('.backdrop');
-    function openDrawer(){ sidebarEl.classList.add('open'); backdrop.classList.add('show'); menuBtn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; }
-    function closeDrawer(){ sidebarEl.classList.remove('open'); backdrop.classList.remove('show'); menuBtn.setAttribute('aria-expanded','false'); document.body.style.overflow=''; }
-    if (menuBtn && sidebarEl && backdrop){
-      menuBtn.addEventListener('click',()=>{ sidebarEl.classList.contains('open')? closeDrawer(): openDrawer(); });
-      backdrop.addEventListener('click', closeDrawer);
-    }
+    // ========= Drawer (mobile) =========
+    (function drawer(){
+      const menuBtn = document.querySelector('.menu-btn');
+      const sidebarEl = document.getElementById('sidebar');
+      const backdrop = document.querySelector('.backdrop');
+      function open(){ sidebarEl.classList.add('open'); backdrop.classList.add('show'); menuBtn.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; }
+      function close(){ sidebarEl.classList.remove('open'); backdrop.classList.remove('show'); menuBtn.setAttribute('aria-expanded','false'); document.body.style.overflow=''; }
+      menuBtn.addEventListener('click', ()=> sidebarEl.classList.contains('open') ? close() : open());
+      backdrop.addEventListener('click', close);
+      // expose closeDrawer for list click
+      window.closeDrawer = close;
+    })();
 
-    // ======== GEOLOCATE ========
+    // ========= Geolocation =========
     function getUserLocation(){
-      return new Promise((resolve,reject)=>{
-        if(!navigator.geolocation) return reject(new Error('No geolocation'));
+      return new Promise((resolve, reject)=>{
+        if (!navigator.geolocation) return reject(new Error('No geolocation'));
         navigator.geolocation.getCurrentPosition(
-          pos=>resolve({lat:pos.coords.latitude, lng:pos.coords.longitude}),
-          err=>reject(err),
-          { enableHighAccuracy:true, timeout:10000, maximumAge:0 }
+          (pos)=> resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          (err)=> reject(err),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
       });
     }
 
-    // ======== INIT ========
-    async function init(){
-      try{
-        // Brand logo from config
-        const logoEl = document.getElementById('brand-logo');
-        if (logoEl && CFG.logo) logoEl.src = CFG.logo;
+    // ========= Init =========
+    async function init() {
+      try {
+        // Logo
+        const logoPath = (cfg.MAP && cfg.MAP.logo) ? cfg.MAP.logo : '';
+        if (logoPath) $('#brand-logo').src = logoPath;
 
-        map = new maplibregl.Map({
-          container: 'map',
-          style: CFG.mapStyleUrl, // neutral/gray style suggested
-          center: [CFG.center.lng, CFG.center.lat],
-          zoom: CFG.zoom,
-          minZoom: CFG.minZoom
-        });
-        map.addControl(new maplibregl.NavigationControl({showCompass:false}));
-
-        popup = new maplibregl.Popup({ closeButton:true, closeOnClick:true });
-
-        // Hide controls/filters via config
-        if (CFG.hideControls) $("#controls").style.display='none';
-        if (CFG.hideFilters)  $("#filters").style.display='none';
+        // Optional hide controls/filters from config
+        if (cfg.UI?.hideControls) $('#controls-block').style.display = 'none';
+        if (cfg.UI?.hideFilters) $('#filters-block').style.display = 'none';
 
         // Data
-        const rows = (await fetchSheetRows());
-        allPlaces = rows.map(normalizeRow).filter(p=>p.lat && p.lng);
-        filteredPlaces = allPlaces.slice();
+        const rows = await fetchSheetRows();
+        allPlaces = rows.map(normalizeRow).filter(p => p.lat && p.lng);
 
-        // Preload marker images (per-row/per-group)
-        const icons = allPlaces.map(p=>resolveIconSrc(p)).filter(Boolean);
-        map.once('load', async ()=>{
-          await loadMarkerIcons(icons);
-          addClusterSourceAndLayers(placesToGeoJSON(filteredPlaces));
-          buildFiltersUI();
-          renderList(filteredPlaces);
-          fitToFiltered();
-
-          // Controls
-          $('#search').addEventListener('input', applyFilters);
-          $('#sort').addEventListener('change', applyFilters);
-          $('#btn-reset').addEventListener('click', ()=>{
-            $$("#tag-filters input[type=checkbox]").forEach(i=>i.checked=true);
-            $('#search').value='';
-            $('#sort').value='name';
-            Object.keys(groupState).forEach(k=>groupState[k]={collapsed:false,faded:false});
-            applyFilters();
-          });
-          $('#btn-nearme').addEventListener('click', async ()=>{
-            try{
-              const pos = await getUserLocation();
-              userPos = pos;
-              // add a small marker for user
-              const el = document.createElement('div');
-              el.style.cssText='width:12px;height:12px;border:2px solid #fff;border-radius:50%;background:#4A00E2;box-shadow:0 0 0 2px rgba(0,0,0,.15);';
-              new maplibregl.Marker({element:el}).setLngLat([pos.lng,pos.lat]).addTo(map);
-              map.easeTo({center:[pos.lng,pos.lat], zoom: Math.max(map.getZoom(), 12)});
-              $('#sort').value='distance';
-              applyFilters();
-            }catch{
-              alert('Location permission was denied or unavailable.');
-            }
-          });
-
-          $("#summary").textContent = filteredPlaces.length + " place" + (filteredPlaces.length===1?"":"s") + " shown";
+        // Build GeoJSON and pre-load any marker images
+        featureCollection = buildGeoJSON(allPlaces);
+        const iconUrls = featureCollection.features.map(f => f.properties.iconKey).filter(Boolean);
+        // Map
+        map = new maplibregl.Map({
+          container: 'map',
+          style: cfg.MAP.style || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json', // grayscale
+          center: [cfg.MAP.center.lng, cfg.MAP.center.lat],
+          zoom: cfg.MAP.zoom,
+          minZoom: cfg.MAP.minZoom ?? 3,
+          attributionControl: true
         });
-      }catch(err){
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+        map.on('load', async ()=>{
+          // Try to preload icons (won’t break if any fail)
+          await preloadMarkerImages(map, iconUrls);
+
+          // Add source with (optional) clustering
+          map.addSource('places', {
+            type: 'geojson',
+            data: featureCollection,
+            cluster: !!cfg.UI?.clustering,
+            clusterMaxZoom: 14,
+            clusterRadius: 60
+          });
+
+          // Layers
+          if (cfg.UI?.clustering) {
+            addClusterLayers(map);
+          } else {
+            // Only unclustered renderers
+            map.addLayer({
+              id: "unclustered-points",
+              type: "symbol",
+              source: "places",
+              layout: {
+                "icon-image": [
+                  "case",
+                  ["!=", ["get","iconKey"], ""],
+                  ["get","iconKey"],
+                  ""
+                ],
+                "icon-size": 0.7,
+                "icon-allow-overlap": true
+              }
+            });
+            map.addLayer({
+              id: "unclustered-fallback",
+              type: "circle",
+              source: "places",
+              filter: ["==", ["get","iconKey"], ""],
+              paint: {
+                "circle-color": "#2E2E2E",
+                "circle-radius": 5,
+                "circle-stroke-color": "#fff",
+                "circle-stroke-width": 1.5
+              }
+            });
+          }
+
+          // Clicks: clusters => zoom; points => popup
+          if (cfg.UI?.clustering) {
+            map.on('click', 'clusters', (e) => {
+              const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+              const clusterId = features[0].properties.cluster_id;
+              map.getSource('places').getClusterExpansionZoom(clusterId, (err, zoom) => {
+                if (err) return;
+                map.easeTo({ center: features[0].geometry.coordinates, zoom });
+              });
+            });
+          }
+
+          // Unclustered points click
+          const pointLayers = cfg.UI?.clustering ? ['unclustered-points','unclustered-fallback'] : ['unclustered-points','unclustered-fallback'];
+          pointLayers.forEach(ly=>{
+            map.on('click', ly, (e)=>{
+              const f = e.features[0];
+              const idx = f.properties.idx;
+              const p = allPlaces[idx];
+              if (!p) return;
+              openPopupAt(f.geometry.coordinates, markerHtml(p));
+            });
+            map.on('mouseenter', ly, ()=> map.getCanvas().style.cursor = 'pointer');
+            map.on('mouseleave', ly, ()=> map.getCanvas().style.cursor = '');
+          });
+
+          // Build UI
+          buildFiltersUI(allPlaces);
+          renderList(allPlaces);
+          $("#summary").textContent = allPlaces.length + " place" + (allPlaces.length===1 ? "" : "s") + " shown";
+        });
+
+        // Controls
+        $('#search').addEventListener('input', applyFilters);
+        $('#sort').addEventListener('change', applyFilters);
+        $('#btn-reset').addEventListener('click', ()=>{
+          $$("#tag-filters input[type=checkbox]").forEach(i=> i.checked = true);
+          $('#search').value = '';
+          $('#sort').value = 'name';
+          Object.keys(groupState).forEach(k=> groupState[k] = { collapsed:false, faded:false });
+          renderList(allPlaces);
+          $("#summary").textContent = allPlaces.length + " place" + (allPlaces.length===1 ? "" : "s") + " shown";
+        });
+        $('#btn-nearme').addEventListener('click', async ()=>{
+          try {
+            const pos = await getUserLocation();
+            userPos = pos;
+            // Show a small user marker using a temporary GeoJSON source+layer or simple marker
+            new maplibregl.Marker({ color: '#4A00E2' }).setLngLat([pos.lng, pos.lat]).addTo(map);
+            map.flyTo({ center: [pos.lng, pos.lat], zoom: Math.max(map.getZoom(), 12) });
+            $('#sort').value = 'distance';
+            applyFilters();
+          } catch {
+            alert('Location permission was denied or unavailable.');
+          }
+        });
+
+      } catch (err) {
         console.error(err);
-        alert('Failed to initialize: ' + err.message + '\n\nTip: ensure your Sheet is shared as "Anyone with the link – Viewer".');
+        alert('Failed to initialize: ' + err.message);
       }
     }
 
