@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- v2025-10-29 freshpaint-wireup -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -109,9 +110,8 @@
     .icon-btn:hover { background:#f3f4f6; }
     .icon-btn svg { width:18px; height:18px; }
     /* smaller variant for compact icon buttons */
-.iconbtn.small { padding: 2px; }
-.iconbtn.small svg { width: 14px; height: 14px; }
-
+    .iconbtn.small { padding: 2px; }
+    .iconbtn.small svg { width: 14px; height: 14px; }
 
     /* Mobile drawer */
     .menu-btn {
@@ -235,7 +235,7 @@
       const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
       return 2 * R * Math.asin(Math.sqrt(s));
     }
-    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
 
     // ========= Data (Google Sheets) =========
     async function fetchSheetRows() {
@@ -377,9 +377,9 @@
         ? '<svg class="eyeoff" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"></path><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"></path><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"></path><path d="m2 2 20 20"></path></svg>'
         : '<svg class="eye" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     }
-function svgTarget(){
-  return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="6"></circle><line x1="7" y1="1" x2="7" y2="3"></line><line x1="7" y1="13" x2="7" y2="11"></line><line x1="1" y1="7" x2="3" y2="7"></line><line x1="13" y1="7" x2="11" y2="7"></line></svg>';
-}
+    function svgTarget(){
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="6"></circle><line x1="7" y1="1" x2="7" y2="3"></line><line x1="7" y1="13" x2="7" y2="11"></line><line x1="1" y1="7" x2="3" y2="7"></line><line x1="13" y1="7" x2="11" y2="7"></line></svg>';
+    }
 
     function renderList(places) {
       const list = $("#list");
@@ -439,6 +439,7 @@ function svgTarget(){
         eyeBtn.innerHTML = svgEyeIcon(groupState[g].faded);
         eyeBtn.addEventListener("click", (e)=>{
           e.stopPropagation();
+          groupState[g] = groupState[g] || { collapsed:false, faded:false };
           groupState[g].faded = !groupState[g].faded;
           head.classList.toggle("faded", groupState[g].faded);
           eyeBtn.innerHTML = svgEyeIcon(groupState[g].faded);
@@ -455,7 +456,7 @@ function svgTarget(){
         onlyBtn.addEventListener("click", (e)=>{
           e.stopPropagation();
           onlyGroup = (onlyGroup === g) ? null : g;
-          applyFilters();     // this will re-render list and map and update pills
+          applyFilters();
         });
 
         const chevBtn = document.createElement("button");
@@ -657,7 +658,6 @@ function svgTarget(){
     }
 
     function getGroupOpacityExpression(){
-      // ["case", ["in", ["get","group"], ["literal", ["A","B"]]], 0.35, 1]
       const faded = Array.from(fadedGroups);
       return ["case", ["in", ["get","group"], ["literal", faded]], parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35, 1];
     }
@@ -693,9 +693,7 @@ function svgTarget(){
 
       filteredPlaces = allPlaces.filter(p=>{
         let ok = true;
-        if (onlyGroup) {
-          ok = (p.group === onlyGroup);
-        }
+        if (onlyGroup) { ok = (p.group === onlyGroup); }
         if (ok && activeTags.size > 0) {
           const ptags = p.tagsNorm || [];
           ok = ptags.some(t => activeTags.has(t));
@@ -795,6 +793,14 @@ function svgTarget(){
       $("#summary").textContent = filteredPlaces.length + " place" + (filteredPlaces.length===1 ? "" : "s") + " shown";
     }
 
+    function computeFreshpaintStyleUrl() {
+      const FP = cfg.FRESHPAINT || {};
+      if (!FP.enabled || !FP.envId) return null;
+      const styleKey = FP.style || 'standard-light';
+      // Freshpaint Map style descriptor endpoint
+      return `https://maps.freshpaint.io/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
+    }
+
     async function init() {
       try {
         // Branding & optional hides
@@ -808,8 +814,11 @@ function svgTarget(){
         allPlaces = rows.map(normalizeRow).filter(p => p.lat && p.lng);
         filteredPlaces = [...allPlaces];
 
+        // Style selection: prefer Freshpaint if enabled + envId present
+        const fpStyleUrl = computeFreshpaintStyleUrl();
+        const styleUrl = fpStyleUrl || (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+
         // Map
-        const styleUrl = (cfg.MAP && cfg.MAP.style) ? cfg.MAP.style : 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
         map = new maplibregl.Map({
           container: 'map',
           style: styleUrl,
