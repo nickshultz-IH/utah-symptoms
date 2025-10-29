@@ -1,3 +1,4 @@
+// v2025-10-29 freshpaint-wireup
 // config.js
 window.APP_CONFIG = {
   DATA: {
@@ -11,12 +12,11 @@ window.APP_CONFIG = {
     clustering: true
   },
   MAP: {
-    provider: "maplibre",            // keep MapLibre now
+    provider: "maplibre",
     center: { lat: 37.0953, lng: -113.5786 },
     zoom: 9,
     minZoom: 3,
-       // Basemap style — Mapbox GL style JSON (free demo style shown).
-    // Swap for your preferred gray/desaturated style to better match Snazzy.
+    // Basemap style fallback when Freshpaint is not active
     style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
     iconsByGroup: {
       "Cobalt": "map-marker-cobalt.png",
@@ -29,12 +29,14 @@ window.APP_CONFIG = {
 
   /* Freshpaint — safe by default until envId is provided */
   FRESHPAINT: {
-    enabled: true,       // leave true; we still won’t send anything unless envId is set
-    envId: "",           // <-- paste your Freshpaint Environment ID here later
+    enabled: true,            // keep true; we still won’t use it unless envId is set
+    envId: "",               // <-- paste your Freshpaint Environment ID here later
+    style: "standard-light", // Freshpaint style key (e.g., standard-light | standard-dark)
+
     // Safety knobs (HIPAA-sensitive data should NOT be sent)
     sendPlaceName: false,     // keep OFF by default
     sendAddress: false,       // keep OFF by default
-    sendLatLng: false,        // keep OFF by default (we’ll send a coarse “tile/precision bucket” instead)
-    coarsePrecision: 2        // number of decimals if you later allow lat/lng (≈1.1 km); 0-2 recommended
+    sendLatLng: false,        // keep OFF by default
+    coarsePrecision: 2        // number of decimals if you later allow lat/lng (≈1.1 km)
   }
 };
