@@ -4,6 +4,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               img-src 'self' data: https:;
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com;
+               font-src https://fonts.gstatic.com;
+               script-src 'self' https://unpkg.com;
+               connect-src 'self' https://sheets.googleapis.com https://maps.freshpaint.io;">
+
   <title>Intermountain Health</title>
   <meta name="description" content="MapLibre + Google Sheets + clustering with Atlist-style sidebar and Intermountain styling." />
 
@@ -50,7 +59,8 @@
 
       <div class="controls" id="controls-block">
         <div class="search">
-          <input id="search" type="search" placeholder="Search by name, market or keywords" />
+          <input id="search" type="search" placeholder="Search by name, market or keywords"
+       data-privacy="mask" autocomplete="off" />
         </div>
         <div class="row">
           <button id="btn-nearme" class="icon-btn" title="Use my location" aria-label="Use my location">
