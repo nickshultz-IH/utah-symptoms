@@ -665,7 +665,7 @@
     function computeFreshpaintStyleUrl() {
       const FP = cfg.FRESHPAINT || {};
       if (!FP.enabled || !FP.envId) return null;
-      const styleKey = FP.style || 'standard-light';
+      const styleKey = FP.style || 'visualization-light';
       // Freshpaint Map style descriptor endpoint
       return `https://maps.freshpaint.io/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
     }
