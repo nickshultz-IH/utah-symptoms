@@ -29,14 +29,16 @@ window.APP_CONFIG = {
 
   /* Freshpaint — safe by default until envId is provided */
   FRESHPAINT: {
-    enabled: true,            // keep true; we still won’t use it unless envId is set
-    envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",               // <-- paste your Freshpaint Environment ID here later
-    style: "visualization-light", // Freshpaint style key (e.g., standard-light | standard-dark)
-
-    // Safety knobs (HIPAA-sensitive data should NOT be sent)
-    sendPlaceName: false,     // keep OFF by default
-    sendAddress: false,       // keep OFF by default
-    sendLatLng: false,        // keep OFF by default
-    coarsePrecision: 2        // number of decimals if you later allow lat/lng (≈1.1 km)
+  enabled: true,
+  envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
+  style: "visualization-light",
+  // New: choose where styles are fetched from
+  // Use HIPAA host for both CDN libs (already in index.html) and style JSON:
+  host: "https://freshpaint-hipaa-maps.com",
+  // Safety knobs
+  sendPlaceName: false,
+  sendAddress: false,
+  sendLatLng: false,
+  coarsePrecision: 2
   }
 };
