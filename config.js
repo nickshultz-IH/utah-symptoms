@@ -30,7 +30,7 @@ window.APP_CONFIG = {
   /* Freshpaint — safe by default until envId is provided */
   FRESHPAINT: {
     enabled: true,            // keep true; we still won’t use it unless envId is set
-    envId: "",               // <-- paste your Freshpaint Environment ID here later
+    envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",               // <-- paste your Freshpaint Environment ID here later
     style: "visualization-light", // Freshpaint style key (e.g., standard-light | standard-dark)
 
     // Safety knobs (HIPAA-sensitive data should NOT be sent)
