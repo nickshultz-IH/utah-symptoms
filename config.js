@@ -34,7 +34,7 @@ window.APP_CONFIG = {
   // In APP_CONFIG.FRESHPAINT
 host: "https://freshpaint-hipaa-maps.com",
 
-  style: "standard-light",     // ← try this first; fallback to standard-dark if needed
+  style: "visualization-light",     // ← try this first; fallback to standard-dark if needed
   sendPlaceName: false,
   sendAddress: false,
   sendLatLng: false,
