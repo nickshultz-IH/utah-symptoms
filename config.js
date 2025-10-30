@@ -32,10 +32,6 @@ window.APP_CONFIG = {
   enabled: true,
   envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
   style: "visualization-light",
-  // New: choose where styles are fetched from
-  // Use HIPAA host for both CDN libs (already in index.html) and style JSON:
-  host: "https://freshpaint-hipaa-maps.com",
-  // Safety knobs
   sendPlaceName: false,
   sendAddress: false,
   sendLatLng: false,
