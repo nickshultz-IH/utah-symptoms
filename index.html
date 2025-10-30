@@ -1,5 +1,4 @@
 <!doctype html>
-<!-- v2025-10-29 freshpaint-wireup -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -12,16 +11,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 
-  <!-- MapLibre GL
+  <!-- MapLibre GL -->
   <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
-  <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script> -->
-  <!-- FreshPaint CDN -->
-  <link href="https://freshpaint-hipaa-maps.com/maplibre-gl@3.x/dist/maplibre-gl.css" rel="stylesheet" type="text/css">
-<script src="https://freshpaint-hipaa-maps.com/maplibre-gl@3.x/dist/maplibre-gl.js" type="text/javascript"> </script>
+  <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
 
- <link rel="stylesheet" href="map.css">
+  <!-- External styles (moved out of HTML) -->
+  <link rel="stylesheet" href="map.css" />
 
-  <!-- Load your config FIRST -->
+  <!-- Config (Freshpaint-ready) -->
   <script src="config.js"></script>
 </head>
 <body>
@@ -49,13 +46,12 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.1</small></p>
+        <p><small>Version 2.2</small></p>
       </header>
 
       <div class="controls" id="controls-block">
         <div class="search">
-          <input id="search" type="search" placeholder="Search by name, market or keywords"
-       data-privacy="mask" autocomplete="off" />
+          <input id="search" type="search" placeholder="Search by name, market or keywords" />
         </div>
         <div class="row">
           <button id="btn-nearme" class="icon-btn" title="Use my location" aria-label="Use my location">
@@ -105,7 +101,27 @@
       const s = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
       return 2 * R * Math.asin(Math.sqrt(s));
     }
-    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+    function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
+
+    // ========= Freshpaint style helpers =========
+    function buildFreshpaintStyleUrl(cfg) {
+      const envId = cfg?.FRESHPAINT?.envId || "";
+      const styleKey = cfg?.FRESHPAINT?.style || "standard-light"; // FP styles: standard-light | standard-dark
+      if (!cfg?.FRESHPAINT?.enabled || !envId) return null;
+      return `https://maps.freshpaint.io/styles/${encodeURIComponent(styleKey)}.json?token=${encodeURIComponent(envId)}`;
+    }
+    async function resolveStyleUrlWithFallback(cfg) {
+      const fpUrl = buildFreshpaintStyleUrl(cfg);
+      if (!fpUrl) return cfg.MAP.style; // fallback Carto
+      try {
+        const head = await fetch(fpUrl, { method: 'HEAD' });
+        if (head.ok) return fpUrl;
+        console.warn('[Freshpaint] style HEAD check failed', head.status, fpUrl);
+      } catch (e) {
+        console.warn('[Freshpaint] style HEAD request error', e);
+      }
+      return cfg.MAP.style;
+    }
 
     // ========= Data (Google Sheets) =========
     async function fetchSheetRows() {
@@ -309,7 +325,6 @@
         eyeBtn.innerHTML = svgEyeIcon(groupState[g].faded);
         eyeBtn.addEventListener("click", (e)=>{
           e.stopPropagation();
-          groupState[g] = groupState[g] || { collapsed:false, faded:false };
           groupState[g].faded = !groupState[g].faded;
           head.classList.toggle("faded", groupState[g].faded);
           eyeBtn.innerHTML = svgEyeIcon(groupState[g].faded);
@@ -326,7 +341,7 @@
         onlyBtn.addEventListener("click", (e)=>{
           e.stopPropagation();
           onlyGroup = (onlyGroup === g) ? null : g;
-          applyFilters();
+          applyFilters();     // re-render list and map
         });
 
         const chevBtn = document.createElement("button");
@@ -563,7 +578,7 @@
 
       filteredPlaces = allPlaces.filter(p=>{
         let ok = true;
-        if (onlyGroup) { ok = (p.group === onlyGroup); }
+        if (onlyGroup) ok = (p.group === onlyGroup);
         if (ok && activeTags.size > 0) {
           const ptags = p.tagsNorm || [];
           ok = ptags.some(t => activeTags.has(t));
@@ -644,7 +659,6 @@
 
     // ========= Init & Reset =========
     async function resetAll() {
-      // Clear UI controls
       $$("#tag-filters input[type=checkbox]").forEach(i=> i.checked = true);
       $('#search').value = '';
       $('#sort').value = 'name';
@@ -652,24 +666,14 @@
       fadedGroups.clear();
       Object.keys(groupState).forEach(k=> groupState[k] = { collapsed:false, faded:false });
 
-      // Close popup
       if (activePopup) { try { activePopup.remove(); } catch {} activePopup = null; }
 
-      // Restore full dataset view
       filteredPlaces = [...allPlaces];
       renderList(filteredPlaces);
       const geo = buildGeoJSONFor(filteredPlaces);
       updateSourceData(geo, true);
       $("#summary").textContent = filteredPlaces.length + " place" + (filteredPlaces.length===1 ? "" : "s") + " shown";
     }
-
-    function computeFreshpaintStyleUrl() {
-  const FP = cfg.FRESHPAINT || {};
-  if (!FP.enabled || !FP.envId) return null;
-  const styleKey = FP.style || 'visualization-light';
-  const base = (FP.host && FP.host.trim()) || 'https://maps.freshpaint.io';
-  return `${base}/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
-}
 
     async function init() {
       try {
@@ -684,9 +688,8 @@
         allPlaces = rows.map(normalizeRow).filter(p => p.lat && p.lng);
         filteredPlaces = [...allPlaces];
 
-        // Style selection: prefer Freshpaint if enabled + envId present
-        const fpStyleUrl = computeFreshpaintStyleUrl();
-        const styleUrl = fpStyleUrl || (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+        // Choose style (Freshpaint if available; fallback to Carto)
+        const styleUrl = await resolveStyleUrlWithFallback(cfg);
 
         // Map
         map = new maplibregl.Map({
