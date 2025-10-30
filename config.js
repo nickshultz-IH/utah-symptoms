@@ -31,10 +31,11 @@ window.APP_CONFIG = {
   FRESHPAINT: {
   enabled: true,
   envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
-  style: "visualization-light",
+  host: "https://maps.freshpaint.io",
+  style: "standard-light",     // ← try this first; fallback to standard-dark if needed
   sendPlaceName: false,
   sendAddress: false,
   sendLatLng: false,
   coarsePrecision: 2
-  }
+}
 };
