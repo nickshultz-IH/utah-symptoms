@@ -46,7 +46,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.2</small></p>
+        <p><small>Version 2.3</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -104,25 +104,29 @@
     function escapeHtml(str){ return String(str||"").replace(/[&<>"']/g, (c)=>({"&":"&amp;","<":"&lt;","&gt;":"&gt;","\"":"&quot;","'":"&#039;"}[c])); }
 
     // ========= Freshpaint style helpers =========
-    function buildFreshpaintStyleUrl(cfg) {
-      const envId = cfg?.FRESHPAINT?.envId || "";
-      const styleKey = cfg?.FRESHPAINT?.style || "standard-light"; // FP styles: standard-light | standard-dark
-      if (!cfg?.FRESHPAINT?.enabled || !envId) return null;
-      return `https://maps.freshpaint.io/styles/${encodeURIComponent(styleKey)}.json?token=${encodeURIComponent(envId)}`;
-    }
-    async function resolveStyleUrlWithFallback(cfg) {
-      const fpUrl = buildFreshpaintStyleUrl(cfg);
-      if (!fpUrl) return cfg.MAP.style; // fallback Carto
-      try {
-        const head = await fetch(fpUrl, { method: 'HEAD' });
-        if (head.ok) return fpUrl;
-        console.warn('[Freshpaint] style HEAD check failed', head.status, fpUrl);
-      } catch (e) {
-        console.warn('[Freshpaint] style HEAD request error', e);
-      }
-      return cfg.MAP.style;
-    }
-
+   function buildFpStyleUrl() {
+  const FP = cfg.FRESHPAINT || {};
+  if (!FP.enabled || !FP.envId) return null;
+  const styleKey = FP.style || 'standard-light';
+  const base = (FP.host && FP.host.trim()) || 'https://maps.freshpaint.io';
+  // ✅ use env_id (not token)
+  return `${base}/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
+}
+    async function resolveStyleUrlWithFallback() {
+  const fpUrl = buildFpStyleUrl();
+  const fallback = (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+  if (!fpUrl) return fallback;
+  try {
+    const res = await fetch(fpUrl, { mode: 'cors', credentials: 'omit' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json || !json.sources) throw new Error('Invalid GL style JSON');
+    return fpUrl;
+  } catch (e) {
+    console.warn('[map] Freshpaint style failed, using fallback:', e);
+    return fallback;
+  }
+}
     // ========= Data (Google Sheets) =========
     async function fetchSheetRows() {
       const { sheetsApiKey, sheetId, sheetRange } = cfg.DATA;
