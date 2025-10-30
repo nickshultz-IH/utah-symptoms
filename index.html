@@ -49,7 +49,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.0</small></p>
+        <p><small>Version 2.1</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -664,12 +664,12 @@
     }
 
     function computeFreshpaintStyleUrl() {
-      const FP = cfg.FRESHPAINT || {};
-      if (!FP.enabled || !FP.envId) return null;
-      const styleKey = FP.style || 'visualization-light';
-      // Freshpaint Map style descriptor endpoint
-      return `https://maps.freshpaint.io/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
-    }
+  const FP = cfg.FRESHPAINT || {};
+  if (!FP.enabled || !FP.envId) return null;
+  const styleKey = FP.style || 'visualization-light';
+  const base = (FP.host && FP.host.trim()) || 'https://maps.freshpaint.io';
+  return `${base}/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
+}
 
     async function init() {
       try {
