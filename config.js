@@ -31,7 +31,9 @@ window.APP_CONFIG = {
   FRESHPAINT: {
   enabled: true,
   envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
-  host: "https://maps.freshpaint.io",
+  // In APP_CONFIG.FRESHPAINT
+host: "https://freshpaint-hipaa-maps.com",
+
   style: "standard-light",     // ← try this first; fallback to standard-dark if needed
   sendPlaceName: false,
   sendAddress: false,
