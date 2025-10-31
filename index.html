@@ -49,7 +49,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.15</small></p>
+        <p><small>Version 2.16</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -677,38 +677,47 @@
     }
 
     // ========= Scroll zoom behavior (configurable) =========
-    function wireScrollZoomBehavior() {
-      const mode = (cfg.UI && cfg.UI.scrollZoom) || 'ctrl'; // 'ctrl' | 'off' | 'always'
-      if (!map || !map.scrollZoom) return;
+    // ========= Scroll zoom behavior (configurable) =========
+function wireScrollZoomBehavior() {
+  const mode = (cfg.UI && cfg.UI.scrollZoom) || 'ctrl'; // 'ctrl' | 'off' | 'always'
+  if (!map || !map.scrollZoom) return;
 
-      // Default off, then opt-in per mode
-      map.scrollZoom.disable();
+  // Start disabled; we'll selectively enable
+  map.scrollZoom.disable();
 
-      if (mode === 'always') {
-        map.scrollZoom.enable();
-        return;
-      }
-      if (mode === 'off') {
-        // keep disabled
-        return;
-      }
-      // 'ctrl' mode: only when Ctrl/Cmd held
-      const canvas = map.getCanvas();
-      function onWheel(e) {
-        // Allow if Ctrl/Cmd is pressed; otherwise prevent page scroll/zoom
-        if (e.ctrlKey || e.metaKey) {
-          // Briefly enable for this event tick; MapLibre handles it
-          map.scrollZoom.enable();
-          // Let the event pass through
-          setTimeout(()=> map && map.scrollZoom && map.scrollZoom.disable(), 0);
-        } else {
-          // Block zooming when not holding modifier
-          e.preventDefault();
-        }
-      }
-      // passive:false to allow preventDefault
-      canvas.addEventListener('wheel', onWheel, { passive: false });
+  if (mode === 'always') {
+    map.scrollZoom.enable();
+    return;
+  }
+  if (mode === 'off') {
+    // keep disabled; also block page scroll-zoom while over canvas
+    const canvas = map.getCanvas();
+    canvas.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true });
+    return;
+  }
+
+  // 'ctrl' mode: only when Ctrl/Cmd held
+  const canvas = map.getCanvas();
+
+  function onWheelCapture(e) {
+    // If Ctrl/Cmd pressed, enable BEFORE MapLibre's own wheel handler runs.
+    if (e.ctrlKey || e.metaKey) {
+      map.scrollZoom.enable();
+      // After this tick, turn it back off so normal scrolling doesn't zoom the map.
+      // Use rAF so MapLibre handles the current wheel first.
+      requestAnimationFrame(() => {
+        if (map && map.scrollZoom) map.scrollZoom.disable();
+      });
+    } else {
+      // Block zoom when modifier not held
+      e.preventDefault();
     }
+  }
+
+  // Important: capture:true makes this run before MapLibre's listener
+  canvas.addEventListener('wheel', onWheelCapture, { passive: false, capture: true });
+}
+
 
     // ========= Init & Reset =========
     async function resetAll() {
