@@ -9,7 +9,11 @@ window.APP_CONFIG = {
   UI: {
     hideControls: false,
     hideFilters: false,
-    clustering: true
+    clustering: true,         // ← set true/false to enable/disable clustering
+    scrollZoom: 'ctrl'       // 'ctrl' | 'off' | 'on'
+                              //  - 'ctrl' = require Ctrl/Cmd to zoom with wheel
+                              //  - 'off'  = no wheel zoom at all
+                              //  - 'on'   = normal MapLibre behavior
   },
   MAP: {
     provider: "maplibre",
