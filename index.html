@@ -705,7 +705,8 @@ async function resolveStyleUrlWithFallback() {
           center: [cfg.MAP.center.lng, cfg.MAP.center.lat],
           zoom: cfg.MAP.zoom,
           minZoom: cfg.MAP.minZoom ?? 3,
-          attributionControl: true
+          attributionControl: true,
+          localFontFamily: "Inter, sans-serif"   // Fixes glyph 404 spam
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
