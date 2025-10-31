@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2025-10-30 freshpaint-wireup + fallback -->
+<!-- v2025-10-31 freshpaint-wireup + fallback (fixes: stray snippet, clusters, glyph 404s) -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -47,7 +47,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.10</small></p>
+        <p><small>Version 2.12</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -134,7 +134,7 @@
         name: row["Name"] || "Untitled",
         address: row["Address"] || "",
         lat: isFinite(parseFloat(row["Latitude"])) ? parseFloat(row["Latitude"]) : null,
-lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : null,
+        lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : null,
         group: row["Group"] || "",
         tags: tagsPretty,
         tagsNorm,
@@ -386,16 +386,14 @@ lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : nul
     let loadedIconSet = new Set(); // URLs successfully loaded into style
     let currentFeaturesById = new Map(); // _id => feature
     let activePopup = null;
-    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) {
-  console.warn("Skipping bad coords:", p.name, p.lat, p.lng);
-  return;
+
     function buildGeoJSONFor(places) {
       const coordsMap = spreadCoincidentPlaces(places, 20); // _id => [lng,lat]
       const features = [];
       currentFeaturesById.clear();
 
       places.forEach((p) => {
-        if (!(p.lat && p.lng)) return;
+        if (!(Number.isFinite(p.lat) && Number.isFinite(p.lng))) return;
         const coords = coordsMap.get(p._id) || [p.lng, p.lat];
         const iconCandidate = resolveIconSrc(p) || "";
         const iconKey = (iconCandidate && loadedIconSet.has(iconCandidate)) ? iconCandidate : "";
@@ -429,17 +427,20 @@ lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : nul
     }
 
     function ensureSourceExists() {
-     if (map.getSource('places')) return;
-console.log("Creating places source, clustering =", cfg.UI?.clustering);
-map.addSource('places', {
-  type: 'geojson',
-  data: { "type":"FeatureCollection", "features":[] },
-  cluster: true,          // hard-enable for testing
-  clusterMaxZoom: 14,
-  clusterRadius: 60
-});
+      if (map.getSource('places')) return;
 
-      if (cfg.UI?.clustering) {
+      const doCluster = (cfg.UI?.clustering !== false); // default ON
+
+      console.log("Creating places source, clustering =", doCluster);
+      map.addSource('places', {
+        type: 'geojson',
+        data: { "type":"FeatureCollection", "features":[] },
+        cluster: doCluster,
+        clusterMaxZoom: 14,
+        clusterRadius: 60
+      });
+
+      if (doCluster) {
         map.addLayer({
           id: "clusters",
           type: "circle",
@@ -464,7 +465,8 @@ map.addSource('places', {
           filter: ["has", "point_count"],
           layout: {
             "text-field": ["get", "point_count_abbreviated"],
-            "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+            /* Use a font family we actually have locally to stop glyph 404 spam */
+            "text-font": ["Inter Regular"],
             "text-size": 12
           },
           paint: { "text-color": "#fff" }
@@ -476,8 +478,8 @@ map.addSource('places', {
         id: "unclustered-points",
         type: "symbol",
         source: "places",
-        filter: cfg.UI?.clustering ? ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]]
-                                   : ["!=", ["get","iconKey"], ""],
+        filter: doCluster ? ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]]
+                          : ["!=", ["get","iconKey"], ""],
         layout: {
           "icon-image": ["get","iconKey"],
           "icon-size": 0.7,
@@ -493,8 +495,8 @@ map.addSource('places', {
         id: "unclustered-fallback",
         type: "circle",
         source: "places",
-        filter: cfg.UI?.clustering ? ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]]
-                                   : ["==", ["get","iconKey"], ""],
+        filter: doCluster ? ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]]
+                          : ["==", ["get","iconKey"], ""],
         paint: {
           "circle-color": "#2E2E2E",
           "circle-radius": 5,
@@ -504,7 +506,7 @@ map.addSource('places', {
         }
       });
 
-      if (cfg.UI?.clustering) {
+      if (doCluster) {
         map.on('click', 'clusters', (e) => {
           const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
           const clusterId = features[0].properties.cluster_id;
@@ -529,7 +531,8 @@ map.addSource('places', {
 
     function getGroupOpacityExpression(){
       const faded = Array.from(fadedGroups);
-      return ["case", ["in", ["get","group"], ["literal", faded]], parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35, 1];
+      return ["case", ["in", ["get","group"], ["literal", faded]],
+        parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35, 1];
     }
     function updateLayerOpacities(){
       const expr = getGroupOpacityExpression();
@@ -643,30 +646,31 @@ map.addSource('places', {
     }
 
     // ========= Freshpaint style helpers =========
-   function computeFreshpaintStyleUrl() {
-  const FP = cfg.FRESHPAINT || {};
-  if (!FP.enabled || !FP.envId) return null;
-  const host = (FP.host && FP.host.trim()) || 'https://freshpaint-hipaa-maps.com';
-  const styleKey = FP.style || 'visualization-light';
-  // Correct pattern: https://freshpaint-hipaa-maps.com/{envId}/{style}/style-descriptor
-  return `${host}/${encodeURIComponent(FP.envId)}/${encodeURIComponent(styleKey)}/style-descriptor`;
-}
+    function computeFreshpaintStyleUrl() {
+      const FP = cfg.FRESHPAINT || {};
+      if (!FP.enabled || !FP.envId) return null;
+      const host = (FP.host && FP.host.trim()) || 'https://freshpaint-hipaa-maps.com';
+      const styleKey = FP.style || 'visualization-light';
+      // Correct pattern: https://freshpaint-hipaa-maps.com/{envId}/{style}/style-descriptor
+      return `${host}/${encodeURIComponent(FP.envId)}/${encodeURIComponent(styleKey)}/style-descriptor`;
+    }
 
-async function resolveStyleUrlWithFallback() {
-  const fpUrl = computeFreshpaintStyleUrl();
-  const fallback = (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-  if (!fpUrl) return fallback;
+    async function resolveStyleUrlWithFallback() {
+      const fpUrl = computeFreshpaintStyleUrl();
+      const fallback = (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+      if (!fpUrl) return fallback;
 
-  try {
-    // Light HEAD probe so we don’t pull the whole JSON if blocked
-    const head = await fetch(fpUrl, { method: 'HEAD', mode: 'cors', credentials: 'omit' });
-    if (!head.ok) throw new Error(`HEAD ${head.status}`);
-    return fpUrl;
-  } catch (e) {
-    console.warn('[map] Freshpaint style failed or blocked, using fallback:', e);
-    return fallback;
-  }
-}
+      try {
+        // Light HEAD probe so we don’t pull the whole JSON if blocked
+        const head = await fetch(fpUrl, { method: 'HEAD', mode: 'cors', credentials: 'omit' });
+        if (!head.ok) throw new Error(`HEAD ${head.status}`);
+        return fpUrl;
+      } catch (e) {
+        console.warn('[map] Freshpaint style failed or blocked, using fallback:', e);
+        return fallback;
+      }
+    }
+
     // ========= Init & Reset =========
     async function resetAll() {
       $$("#tag-filters input[type=checkbox]").forEach(i=> i.checked = true);
@@ -694,8 +698,8 @@ async function resolveStyleUrlWithFallback() {
         // Data
         const rows = await fetchSheetRows();
         allPlaces = rows
-  .map(normalizeRow)
-  .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+          .map(normalizeRow)
+          .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
         filteredPlaces = [...allPlaces];
 
         // Style selection with robust fallback
@@ -709,7 +713,7 @@ async function resolveStyleUrlWithFallback() {
           zoom: cfg.MAP.zoom,
           minZoom: cfg.MAP.minZoom ?? 3,
           attributionControl: true,
-          localFontFamily: "Inter, sans-serif"   // Fixes glyph 404 spam
+          localFontFamily: "Inter, sans-serif"   // helps with glyphs
         });
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
