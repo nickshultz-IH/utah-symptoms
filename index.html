@@ -47,7 +47,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.12</small></p>
+        <p><small>Version 2.13</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -427,107 +427,112 @@
     }
 
     function ensureSourceExists() {
-      if (map.getSource('places')) return;
+  if (map.getSource('places')) return;
 
-      const doCluster = (cfg.UI?.clustering !== false); // default ON
+  // Force clustering ON while we debug (you can switch back to cfg.UI?.clustering later)
+  const doCluster = true;
 
-      console.log("Creating places source, clustering =", doCluster);
-      map.addSource('places', {
-        type: 'geojson',
-        data: { "type":"FeatureCollection", "features":[] },
-        cluster: doCluster,
-        clusterMaxZoom: 14,
-        clusterRadius: 60
-      });
+  console.log("[places] addSource (cluster =", doCluster, ")");
+  map.addSource('places', {
+    type: 'geojson',
+    data: { "type":"FeatureCollection", "features":[] },
+    cluster: doCluster,
+    clusterMaxZoom: 14,
+    clusterRadius: 70   // a bit larger to encourage visible clusters
+  });
 
-      if (doCluster) {
-        map.addLayer({
-          id: "clusters",
-          type: "circle",
-          source: "places",
-          filter: ["has", "point_count"],
-          paint: {
-            "circle-color": "#4A00E2",
-            "circle-radius": [
-              "step",
-              ["get", "point_count"],
-              16,
-              10, 20,
-              25, 24
-            ],
-            "circle-opacity": 0.9
-          }
-        });
-        map.addLayer({
-          id: "cluster-count",
-          type: "symbol",
-          source: "places",
-          filter: ["has", "point_count"],
-          layout: {
-            "text-field": ["get", "point_count_abbreviated"],
-            /* Use a font family we actually have locally to stop glyph 404 spam */
-            "text-font": ["Inter Regular"],
-            "text-size": 12
-          },
-          paint: { "text-color": "#fff" }
-        });
-      }
+  // --- CLUSTERS (bubbles) ---
+  map.addLayer({
+    id: "clusters",
+    type: "circle",
+    source: "places",
+    filter: ["has", "point_count"],
+    paint: {
+      "circle-color": "#4A00E2",
+      "circle-radius": [
+        "step",
+        ["get", "point_count"],
+        16,
+        10, 20,
+        25, 24
+      ],
+      "circle-opacity": 0.9
+    }
+  });
 
-      // unclustered with icon
-      map.addLayer({
-        id: "unclustered-points",
-        type: "symbol",
-        source: "places",
-        filter: doCluster ? ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]]
-                          : ["!=", ["get","iconKey"], ""],
-        layout: {
-          "icon-image": ["get","iconKey"],
-          "icon-size": 0.7,
-          "icon-allow-overlap": true
-        },
-        paint: {
-          "icon-opacity": getGroupOpacityExpression()
-        }
-      });
+  // --- CLUSTER COUNT (label) ---
+  // Remove text-font to avoid glyph 404s forcing a missing stack.
+  map.addLayer({
+    id: "cluster-count",
+    type: "symbol",
+    source: "places",
+    filter: ["has", "point_count"],
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-size": 12
+    },
+    paint: { "text-color": "#fff" }
+  });
 
-      // fallback circles
-      map.addLayer({
-        id: "unclustered-fallback",
-        type: "circle",
-        source: "places",
-        filter: doCluster ? ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]]
-                          : ["==", ["get","iconKey"], ""],
-        paint: {
-          "circle-color": "#2E2E2E",
-          "circle-radius": 5,
-          "circle-stroke-color": "#fff",
-          "circle-stroke-width": 1.5,
-          "circle-opacity": getGroupOpacityExpression()
-        }
-      });
+  // --- UNCLUSTERED POINTS (image pins) ---
+  map.addLayer({
+    id: "unclustered-points",
+    type: "symbol",
+    source: "places",
+    filter: ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]],
+    layout: {
+      "icon-image": ["get","iconKey"],
+      "icon-size": 0.7,
+      "icon-allow-overlap": true
+    },
+    paint: {
+      "icon-opacity": getGroupOpacityExpression()
+    }
+  });
 
-      if (doCluster) {
-        map.on('click', 'clusters', (e) => {
-          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-          const clusterId = features[0].properties.cluster_id;
-          map.getSource('places').getClusterExpansionZoom(clusterId, (err, zoom) => {
-            if (err) return;
-            map.easeTo({ center: features[0].geometry.coordinates, zoom });
-          });
-        });
-      }
-      ['unclustered-points','unclustered-fallback'].forEach(ly=>{
-        map.on('click', ly, (e)=>{
-          const f = e.features[0];
-          const id = f.properties._id;
-          const p = filteredPlaces.find(pp => pp._id == id) || allPlaces.find(pp => pp._id == id);
-          if (!p) return;
-          openPopupAt(f.geometry.coordinates, markerHtml(p));
-        });
-        map.on('mouseenter', ly, ()=> map.getCanvas().style.cursor = 'pointer');
-        map.on('mouseleave', ly, ()=> map.getCanvas().style.cursor = '');
+  // --- UNCLUSTERED FALLBACK (circles) ---
+  map.addLayer({
+    id: "unclustered-fallback",
+    type: "circle",
+    source: "places",
+    filter: ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]],
+    paint: {
+      "circle-color": "#2E2E2E",
+      "circle-radius": 5,
+      "circle-stroke-color": "#fff",
+      "circle-stroke-width": 1.5,
+      "circle-opacity": getGroupOpacityExpression()
+    }
+  });
+
+  // Cluster click to zoom
+  map.on('click', 'clusters', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    if (!features.length) return;
+    const clusterId = features[0].properties.cluster_id;
+    const src = map.getSource('places');
+    if (src && typeof src.getClusterExpansionZoom === 'function') {
+      src.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return;
+        map.easeTo({ center: features[0].geometry.coordinates, zoom });
       });
     }
+  });
+
+  // Cursor + popup hooks
+  ['unclustered-points','unclustered-fallback'].forEach(ly=>{
+    map.on('click', ly, (e)=>{
+      const f = e.features[0];
+      const id = f.properties._id;
+      const p = filteredPlaces.find(pp => pp._id == id) || allPlaces.find(pp => pp._id == id);
+      if (!p) return;
+      openPopupAt(f.geometry.coordinates, markerHtml(p));
+    });
+    map.on('mouseenter', ly, ()=> map.getCanvas().style.cursor = 'pointer');
+    map.on('mouseleave', ly, ()=> map.getCanvas().style.cursor = '');
+  });
+}
+
 
     function getGroupOpacityExpression(){
       const faded = Array.from(fadedGroups);
@@ -758,6 +763,22 @@
     }
 
     init();
+    // ---- debug helpers ----
+window.debugClusters = function() {
+  const src = map.getSource('places');
+  console.log("source exists:", !!src);
+  console.log("has getClusterExpansionZoom():", src && typeof src.getClusterExpansionZoom === 'function');
+  console.log("features in currentFeaturesById:", currentFeaturesById.size);
+
+  const renderedClusters = map.queryRenderedFeatures({ layers: ['clusters'] });
+  const renderedPoints   = map.queryRenderedFeatures({ layers: ['unclustered-points','unclustered-fallback'] });
+  console.log("rendered clusters:", renderedClusters.length, " rendered unclustered:", renderedPoints.length);
+
+  // peek at a couple features
+  console.log("sample rendered cluster:", renderedClusters[0]);
+  console.log("sample rendered point:", renderedPoints[0]);
+};
+
   </script>
 </body>
 </html>
