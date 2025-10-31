@@ -31,13 +31,12 @@ window.APP_CONFIG = {
   FRESHPAINT: {
   enabled: true,
   envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
-  // In APP_CONFIG.FRESHPAINT
-host: "https://freshpaint-hipaa-maps.com",
-
-  style: "visualization-light",     // ← try this first; fallback to standard-dark if needed
+  style: "visualization-light",
+  host: "https://freshpaint-hipaa-maps.com",
   sendPlaceName: false,
   sendAddress: false,
   sendLatLng: false,
   coarsePrecision: 2
 }
+
 };
