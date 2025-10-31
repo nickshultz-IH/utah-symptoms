@@ -47,7 +47,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.7</small></p>
+        <p><small>Version 2.8</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -133,8 +133,8 @@
         _id: uidCounter++,
         name: row["Name"] || "Untitled",
         address: row["Address"] || "",
-        lat: parseFloat(row["Latitude"]) || null,
-        lng: parseFloat(row["Longitude"]) || null,
+        lat: isFinite(parseFloat(row["Latitude"])) ? parseFloat(row["Latitude"]) : null,
+lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : null,
         group: row["Group"] || "",
         tags: tagsPretty,
         tagsNorm,
@@ -690,7 +690,9 @@ async function resolveStyleUrlWithFallback() {
 
         // Data
         const rows = await fetchSheetRows();
-        allPlaces = rows.map(normalizeRow).filter(p => p.lat && p.lng);
+        allPlaces = rows
+  .map(normalizeRow)
+  .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
         filteredPlaces = [...allPlaces];
 
         // Style selection with robust fallback
