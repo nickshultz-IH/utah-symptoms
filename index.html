@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v2025-10-31 freshpaint-wireup + fallback (fixes: stray snippet, clusters, glyph 404s) -->
+<!-- v2025-10-31 freshpaint-wireup + fallback + robust clustering + ctrl-scroll -->
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -10,7 +10,9 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=Source+Sans+3:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <!-- MapLibre (Freshpaint HIPAA build) -->
   <link href="https://freshpaint-hipaa-maps.com/maplibre-gl@3.x/dist/maplibre-gl.css" rel="stylesheet" type="text/css">
@@ -47,7 +49,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.14</small></p>
+        <p><small>Version 2.15</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -87,7 +89,7 @@
 
   <script>
     // ========= Utilities =========
-    const cfg = window.APP_CONFIG;
+    const cfg = window.APP_CONFIG || {};
     const $$ = (sel) => Array.from(document.querySelectorAll(sel));
     const $  = (sel) => document.querySelector(sel);
     const norm = (s) => String(s || "").trim().toLowerCase();
@@ -106,7 +108,7 @@
 
     // ========= Data (Google Sheets) =========
     async function fetchSheetRows() {
-      const { sheetsApiKey, sheetId, sheetRange } = cfg.DATA;
+      const { sheetsApiKey, sheetId, sheetRange } = cfg.DATA || {};
       const url = 'https://sheets.googleapis.com/v4/spreadsheets/' +
                   encodeURIComponent(sheetId) +
                   '/values/' + encodeURIComponent(sheetRange) +
@@ -133,8 +135,8 @@
         _id: uidCounter++,
         name: row["Name"] || "Untitled",
         address: row["Address"] || "",
-        lat: isFinite(parseFloat(row["Latitude"])) ? parseFloat(row["Latitude"]) : null,
-        lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : null,
+        lat: Number.isFinite(parseFloat(row["Latitude"])) ? parseFloat(row["Latitude"]) : null,
+        lng: Number.isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : null,
         group: row["Group"] || "",
         tags: tagsPretty,
         tagsNorm,
@@ -147,42 +149,6 @@
       };
     }
 
-    function wireScrollZoomBehavior(map) {
-  const mode = (cfg.UI && cfg.UI.scrollZoom) || 'on';
-
-  if (mode === 'off') {
-    map.scrollZoom.disable();
-    return;
-  }
-
-  if (mode === 'ctrl') {
-    // Start with wheel zoom disabled; allow it only while Ctrl/Cmd is held
-    map.scrollZoom.disable();
-
-    let _fpScrollTimer;
-    const canvas = map.getCanvas();
-
-    // Use passive:false so we can preventDefault()
-    canvas.addEventListener('wheel', (e) => {
-      if (e.ctrlKey || e.metaKey) {
-        // Allow map zoom, but block the browser page zoom
-        e.preventDefault();
-        if (!map.scrollZoom.isEnabled()) map.scrollZoom.enable();
-        clearTimeout(_fpScrollTimer);
-        _fpScrollTimer = setTimeout(() => map.scrollZoom.disable(), 500);
-      } else {
-        // Block accidental zoom when not holding Ctrl/Cmd
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    return;
-  }
-
-  // 'on' (default): do nothing — MapLibre’s default wheel zoom is enabled
-}
-
-
     // ========= Icons =========
     function normalizeIconValue(v) {
       if (!v) return "";
@@ -191,7 +157,7 @@
       if (/\.(png|jpe?g|svg|webp)$/i.test(raw)) return raw;
       const token = raw.toLowerCase().replace(/[^a-z]/g, "");
       const tokenMap = {};
-      Object.entries(cfg.MAP.iconsByGroup || {}).forEach(([g, file])=>{
+      Object.entries((cfg.MAP && cfg.MAP.iconsByGroup) || {}).forEach(([g, file])=>{
         tokenMap[g.toLowerCase().replace(/[^a-z]/g,"")] = file;
       });
       return tokenMap[token] || "";
@@ -199,7 +165,7 @@
     function resolveIconSrc(place) {
       const fromCell = normalizeIconValue(place.iconUrl);
       if (fromCell) return fromCell;
-      const file = (cfg.MAP.iconsByGroup || {})[place.group] || "";
+      const file = (cfg.MAP && cfg.MAP.iconsByGroup ? cfg.MAP.iconsByGroup[place.group] : "") || "";
       return file || "";
     }
 
@@ -212,7 +178,7 @@
     function spreadCoincidentPlaces(places, radiusMeters = 20) {
       const buckets = new Map();
       places.forEach((p) => {
-        if (!(p.lat && p.lng)) return;
+        if (!(Number.isFinite(p.lat) && Number.isFinite(p.lng))) return;
         const key = (p.lat.toFixed(6)) + "|" + (p.lng.toFixed(6));
         if (!buckets.has(key)) buckets.set(key, []);
         buckets.get(key).push(p);
@@ -424,7 +390,7 @@
     let activePopup = null;
 
     function buildGeoJSONFor(places) {
-      const coordsMap = spreadCoincidentPlaces(places, 20); // _id => [lng,lat]
+      const coordsMap = spreadCoincidentPlaces(places, 20);
       const features = [];
       currentFeaturesById.clear();
 
@@ -462,117 +428,115 @@
       return results;
     }
 
-    function ensureSourceExists() {
-  if (map.getSource('places')) return;
+    // ---- Robust clustering: rebuild source & layers from cfg.UI.clustering ----
+    function rebuildPlacesSource() {
+      const layers = ["clusters", "cluster-count", "unclustered-points", "unclustered-fallback"];
+      layers.forEach(id => { if (map.getLayer(id)) map.removeLayer(id); });
+      if (map.getSource("places")) map.removeSource("places");
 
-  const useClustering = !!(cfg.UI && cfg.UI.clustering);
-  console.log("Creating places source, clustering =", useClustering);
+      const useClustering = !!(cfg.UI && cfg.UI.clustering);
+      console.log("[map] (re)building places source; clustering =", useClustering);
 
-  map.addSource('places', {
-    type: 'geojson',
-    data: { type: "FeatureCollection", features: [] },
-    cluster: useClustering,
-    clusterMaxZoom: 14,
-    clusterRadius: 60
-  });
-
-  if (useClustering) {
-    map.addLayer({
-      id: "clusters",
-      type: "circle",
-      source: "places",
-      filter: ["has", "point_count"],
-      paint: {
-        "circle-color": "#4A00E2",
-        "circle-radius": [
-          "step",
-          ["get", "point_count"],
-          16,
-          10, 20,
-          25, 24
-        ],
-        "circle-opacity": 0.9
-      }
-    });
-
-    map.addLayer({
-      id: "cluster-count",
-      type: "symbol",
-      source: "places",
-      filter: ["has", "point_count"],
-      layout: {
-        "text-field": ["get", "point_count_abbreviated"],
-        "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-        "text-size": 12
-      },
-      paint: { "text-color": "#fff" }
-    });
-
-    // Click-to-expand clusters
-    map.on('click', 'clusters', (e) => {
-      const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-      const clusterId = features[0].properties.cluster_id;
-      map.getSource('places').getClusterExpansionZoom(clusterId, (err, zoom) => {
-        if (err) return;
-        map.easeTo({ center: features[0].geometry.coordinates, zoom });
+      map.addSource('places', {
+        type: 'geojson',
+        data: { type: "FeatureCollection", features: [] },
+        cluster: useClustering,
+        clusterMaxZoom: 14,
+        clusterRadius: 60
       });
-    });
-  }
 
-  // Unclustered with icon
-  map.addLayer({
-    id: "unclustered-points",
-    type: "symbol",
-    source: "places",
-    filter: useClustering
-      ? ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]]
-      : ["!=", ["get","iconKey"], ""],
-    layout: {
-      "icon-image": ["get","iconKey"],
-      "icon-size": 0.7,
-      "icon-allow-overlap": true
-    },
-    paint: {
-      "icon-opacity": getGroupOpacityExpression()
+      if (useClustering) {
+        map.addLayer({
+          id: "clusters",
+          type: "circle",
+          source: "places",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": "#4A00E2",
+            "circle-radius": [
+              "step", ["get", "point_count"],
+              16,
+              10, 20,
+              25, 24
+            ],
+            "circle-opacity": 0.9
+          }
+        });
+
+        map.addLayer({
+          id: "cluster-count",
+          type: "symbol",
+          source: "places",
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": ["get", "point_count_abbreviated"],
+            // no text-font to avoid glyph fetches with Freshpaint styles
+            "text-size": 12
+          },
+          paint: { "text-color": "#fff" }
+        });
+
+        map.on('click', 'clusters', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+          const clusterId = features[0].properties.cluster_id;
+          map.getSource('places').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.easeTo({ center: features[0].geometry.coordinates, zoom });
+          });
+        });
+      }
+
+      map.addLayer({
+        id: "unclustered-points",
+        type: "symbol",
+        source: "places",
+        filter: useClustering
+          ? ["all", ["!", ["has", "point_count"]], ["!=", ["get","iconKey"], ""]]
+          : ["!=", ["get","iconKey"], ""],
+        layout: {
+          "icon-image": ["get","iconKey"],
+          "icon-size": 0.7,
+          "icon-allow-overlap": true
+        },
+        paint: {
+          "icon-opacity": getGroupOpacityExpression()
+        }
+      });
+
+      map.addLayer({
+        id: "unclustered-fallback",
+        type: "circle",
+        source: "places",
+        filter: useClustering
+          ? ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]]
+          : ["==", ["get","iconKey"], ""],
+        paint: {
+          "circle-color": "#2E2E2E",
+          "circle-radius": 5,
+          "circle-stroke-color": "#fff",
+          "circle-stroke-width": 1.5,
+          "circle-opacity": getGroupOpacityExpression()
+        }
+      });
+
+      ['unclustered-points','unclustered-fallback'].forEach(ly => {
+        map.on('click', ly, (e) => {
+          const f = e.features[0];
+          const id = f.properties._id;
+          const p = filteredPlaces.find(pp => pp._id == id) || allPlaces.find(pp => pp._id == id);
+          if (!p) return;
+          openPopupAt(f.geometry.coordinates, markerHtml(p));
+        });
+        map.on('mouseenter', ly, () => map.getCanvas().style.cursor = 'pointer');
+        map.on('mouseleave', ly, () => map.getCanvas().style.cursor = '');
+      });
     }
-  });
-
-  // Fallback circles (when an icon couldn’t load)
-  map.addLayer({
-    id: "unclustered-fallback",
-    type: "circle",
-    source: "places",
-    filter: useClustering
-      ? ["all", ["!", ["has", "point_count"]], ["==", ["get","iconKey"], ""]]
-      : ["==", ["get","iconKey"], ""],
-    paint: {
-      "circle-color": "#2E2E2E",
-      "circle-radius": 5,
-      "circle-stroke-color": "#fff",
-      "circle-stroke-width": 1.5,
-      "circle-opacity": getGroupOpacityExpression()
-    }
-  });
-
-  ['unclustered-points','unclustered-fallback'].forEach(ly => {
-    map.on('click', ly, (e) => {
-      const f = e.features[0];
-      const id = f.properties._id;
-      const p = filteredPlaces.find(pp => pp._id == id) || allPlaces.find(pp => pp._id == id);
-      if (!p) return;
-      openPopupAt(f.geometry.coordinates, markerHtml(p));
-    });
-    map.on('mouseenter', ly, () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', ly, () => map.getCanvas().style.cursor = '');
-  });
-}
-
-
 
     function getGroupOpacityExpression(){
       const faded = Array.from(fadedGroups);
-      return ["case", ["in", ["get","group"], ["literal", faded]],
-        parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35, 1];
+      // reads --fade from CSS if present, defaults to 0.35
+      const cssFade = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fade')) || 0.35;
+      return ["case", ["in", ["get","group"], ["literal", faded]], cssFade, 1];
     }
     function updateLayerOpacities(){
       const expr = getGroupOpacityExpression();
@@ -582,7 +546,8 @@
 
     function updateSourceData(geojson, fit=true) {
       const src = map.getSource('places');
-      if (src) { src.setData(geojson); } else { ensureSourceExists(); map.getSource('places').setData(geojson); }
+      if (!src) return;
+      src.setData(geojson);
       if (fit && geojson.features && geojson.features.length) {
         const bounds = new maplibregl.LngLatBounds();
         geojson.features.forEach(f => bounds.extend(f.geometry.coordinates));
@@ -647,6 +612,7 @@
         deskToggleBtn.title = desktopSidebarCollapsed ? 'Show sidebar' : 'Hide sidebar';
         deskToggleBtn.dataset.state = desktopSidebarCollapsed ? 'closed' : 'open';
         const label = deskToggleBtn.querySelector('.label'); if (label) label.textContent = desktopSidebarCollapsed ? 'Show' : 'Hide';
+        try { map && map.resize(); } catch {}
       }
       dock();
       deskToggleBtn.addEventListener('click', ()=>{
@@ -691,7 +657,7 @@
       if (!FP.enabled || !FP.envId) return null;
       const host = (FP.host && FP.host.trim()) || 'https://freshpaint-hipaa-maps.com';
       const styleKey = FP.style || 'visualization-light';
-      // Correct pattern: https://freshpaint-hipaa-maps.com/{envId}/{style}/style-descriptor
+      // pattern: https://freshpaint-hipaa-maps.com/{envId}/{style}/style-descriptor
       return `${host}/${encodeURIComponent(FP.envId)}/${encodeURIComponent(styleKey)}/style-descriptor`;
     }
 
@@ -701,7 +667,6 @@
       if (!fpUrl) return fallback;
 
       try {
-        // Light HEAD probe so we don’t pull the whole JSON if blocked
         const head = await fetch(fpUrl, { method: 'HEAD', mode: 'cors', credentials: 'omit' });
         if (!head.ok) throw new Error(`HEAD ${head.status}`);
         return fpUrl;
@@ -709,6 +674,40 @@
         console.warn('[map] Freshpaint style failed or blocked, using fallback:', e);
         return fallback;
       }
+    }
+
+    // ========= Scroll zoom behavior (configurable) =========
+    function wireScrollZoomBehavior() {
+      const mode = (cfg.UI && cfg.UI.scrollZoom) || 'ctrl'; // 'ctrl' | 'off' | 'always'
+      if (!map || !map.scrollZoom) return;
+
+      // Default off, then opt-in per mode
+      map.scrollZoom.disable();
+
+      if (mode === 'always') {
+        map.scrollZoom.enable();
+        return;
+      }
+      if (mode === 'off') {
+        // keep disabled
+        return;
+      }
+      // 'ctrl' mode: only when Ctrl/Cmd held
+      const canvas = map.getCanvas();
+      function onWheel(e) {
+        // Allow if Ctrl/Cmd is pressed; otherwise prevent page scroll/zoom
+        if (e.ctrlKey || e.metaKey) {
+          // Briefly enable for this event tick; MapLibre handles it
+          map.scrollZoom.enable();
+          // Let the event pass through
+          setTimeout(()=> map && map.scrollZoom && map.scrollZoom.disable(), 0);
+        } else {
+          // Block zooming when not holding modifier
+          e.preventDefault();
+        }
+      }
+      // passive:false to allow preventDefault
+      canvas.addEventListener('wheel', onWheel, { passive: false });
     }
 
     // ========= Init & Reset =========
@@ -753,20 +752,19 @@
           zoom: cfg.MAP.zoom,
           minZoom: cfg.MAP.minZoom ?? 3,
           attributionControl: true,
-          localFontFamily: "Inter, sans-serif"   // helps with glyphs
+          localFontFamily: "Inter, Source Sans 3, sans-serif"   // use local fonts; avoid glyph fetch spam
         });
-        // ↓ add this line right after the constructor:
-wireScrollZoomBehavior(map);
-
-map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
         map.on('load', async ()=>{
           // Preload icons (from ALL places)
           const allIconUrls = Array.from(new Set(allPlaces.map(p => resolveIconSrc(p)).filter(Boolean)));
           await preloadMarkerImages(map, allIconUrls);
 
-          // Source/layers and initial data
-          ensureSourceExists();
+          // Build source/layers fresh based on cfg.UI.clustering
+          rebuildPlacesSource();
+
+          // Initial data
           const initialGeo = buildGeoJSONFor(filteredPlaces);
           updateSourceData(initialGeo, true);
 
@@ -774,6 +772,9 @@ map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-ri
           buildFiltersUI(allPlaces);
           renderList(filteredPlaces);
           $("#summary").textContent = filteredPlaces.length + " place" + (filteredPlaces.length===1 ? "" : "s") + " shown";
+
+          // Scroll zoom behavior after map is ready
+          wireScrollZoomBehavior();
         });
 
         // Wire controls
@@ -801,22 +802,6 @@ map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-ri
     }
 
     init();
-    // ---- debug helpers ----
-window.debugClusters = function() {
-  const src = map.getSource('places');
-  console.log("source exists:", !!src);
-  console.log("has getClusterExpansionZoom():", src && typeof src.getClusterExpansionZoom === 'function');
-  console.log("features in currentFeaturesById:", currentFeaturesById.size);
-
-  const renderedClusters = map.queryRenderedFeatures({ layers: ['clusters'] });
-  const renderedPoints   = map.queryRenderedFeatures({ layers: ['unclustered-points','unclustered-fallback'] });
-  console.log("rendered clusters:", renderedClusters.length, " rendered unclustered:", renderedPoints.length);
-
-  // peek at a couple features
-  console.log("sample rendered cluster:", renderedClusters[0]);
-  console.log("sample rendered point:", renderedPoints[0]);
-};
-
   </script>
 </body>
 </html>
