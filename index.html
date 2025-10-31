@@ -47,7 +47,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.9</small></p>
+        <p><small>Version 2.10</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -386,7 +386,9 @@ lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : nul
     let loadedIconSet = new Set(); // URLs successfully loaded into style
     let currentFeaturesById = new Map(); // _id => feature
     let activePopup = null;
-
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) {
+  console.warn("Skipping bad coords:", p.name, p.lat, p.lng);
+  return;
     function buildGeoJSONFor(places) {
       const coordsMap = spreadCoincidentPlaces(places, 20); // _id => [lng,lat]
       const features = [];
@@ -427,14 +429,15 @@ lng: isFinite(parseFloat(row["Longitude"])) ? parseFloat(row["Longitude"]) : nul
     }
 
     function ensureSourceExists() {
-      if (map.getSource('places')) return;
-      map.addSource('places', {
-        type: 'geojson',
-        data: { "type":"FeatureCollection", "features":[] },
-        cluster: !!cfg.UI?.clustering,
-        clusterMaxZoom: 14,
-        clusterRadius: 60
-      });
+     if (map.getSource('places')) return;
+console.log("Creating places source, clustering =", cfg.UI?.clustering);
+map.addSource('places', {
+  type: 'geojson',
+  data: { "type":"FeatureCollection", "features":[] },
+  cluster: true,          // 👈 hard-enable for testing
+  clusterMaxZoom: 14,
+  clusterRadius: 60
+});
 
       if (cfg.UI?.clustering) {
         map.addLayer({
