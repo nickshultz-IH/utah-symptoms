@@ -30,7 +30,7 @@ window.APP_CONFIG = {
   /* Freshpaint — safe by default until envId is provided */
   FRESHPAINT: {
   enabled: true,
-  envId: "",
+  envId: "ed7feca2-785d-47de-926c-faf58bd0d3b9",
   style: "visualization-light",
   host: "https://freshpaint-hipaa-maps.com",
   sendPlaceName: false,
