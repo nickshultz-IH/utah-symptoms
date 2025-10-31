@@ -434,7 +434,7 @@ console.log("Creating places source, clustering =", cfg.UI?.clustering);
 map.addSource('places', {
   type: 'geojson',
   data: { "type":"FeatureCollection", "features":[] },
-  cluster: true,          // 👈 hard-enable for testing
+  cluster: true,          // hard-enable for testing
   clusterMaxZoom: 14,
   clusterRadius: 60
 });
