@@ -49,7 +49,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.16</small></p>
+        <p><small>Version 2.17</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -677,46 +677,45 @@
     }
 
     // ========= Scroll zoom behavior (configurable) =========
-    // ========= Scroll zoom behavior (configurable) =========
 function wireScrollZoomBehavior() {
   const mode = (cfg.UI && cfg.UI.scrollZoom) || 'ctrl'; // 'ctrl' | 'off' | 'always'
   if (!map || !map.scrollZoom) return;
 
-  // Start disabled; we'll selectively enable
-  map.scrollZoom.disable();
+  const canvas = map.getCanvas();
 
   if (mode === 'always') {
     map.scrollZoom.enable();
     return;
   }
+
   if (mode === 'off') {
-    // keep disabled; also block page scroll-zoom while over canvas
-    const canvas = map.getCanvas();
+    map.scrollZoom.disable();
+    // Optional: block wheel zoom entirely while cursor over map
     canvas.addEventListener('wheel', (e) => e.preventDefault(), { passive: false, capture: true });
     return;
   }
 
-  // 'ctrl' mode: only when Ctrl/Cmd held
-  const canvas = map.getCanvas();
+  // mode === 'ctrl'
+  // Let MapLibre handle wheel, but only when Ctrl/Cmd is held.
+  // Also block browser page zoom when Ctrl/Cmd is held (Firefox/Windows).
+  map.scrollZoom.enable();
 
   function onWheelCapture(e) {
-    // If Ctrl/Cmd pressed, enable BEFORE MapLibre's own wheel handler runs.
     if (e.ctrlKey || e.metaKey) {
-      map.scrollZoom.enable();
-      // After this tick, turn it back off so normal scrolling doesn't zoom the map.
-      // Use rAF so MapLibre handles the current wheel first.
-      requestAnimationFrame(() => {
-        if (map && map.scrollZoom) map.scrollZoom.disable();
-      });
+      // Allow MapLibre to see the event but stop the browser page-zoom.
+      e.preventDefault(); // stops browser zoom
+      // DO NOT stopPropagation here—MapLibre needs to receive it.
     } else {
-      // Block zoom when modifier not held
+      // Block non-modified wheel so map won't zoom.
       e.preventDefault();
+      e.stopImmediatePropagation(); // keep MapLibre from seeing it
     }
   }
 
-  // Important: capture:true makes this run before MapLibre's listener
+  // Capture so we run before MapLibre's own wheel listener
   canvas.addEventListener('wheel', onWheelCapture, { passive: false, capture: true });
 }
+
 
 
     // ========= Init & Reset =========
