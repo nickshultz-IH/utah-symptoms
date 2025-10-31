@@ -47,7 +47,7 @@
           <span class="label">Hide</span>
         </button>
         <div class="meta" id="summary">Loading places…</div>
-        <p><small>Version 2.6</small></p>
+        <p><small>Version 2.7</small></p>
       </header>
 
       <div class="controls" id="controls-block">
@@ -640,34 +640,30 @@
     }
 
     // ========= Freshpaint style helpers =========
-    function buildFpStyleUrl() {
-      const FP = cfg.FRESHPAINT || {};
-      if (!FP.enabled || !FP.envId) return null;
-      const styleKey = FP.style || 'standard-light';
-      const base = (FP.host && FP.host.trim()) || 'https://maps.freshpaint.io';
-      // ✅ env_id (not token)
-      return `${base}/styles/${encodeURIComponent(styleKey)}.json?env_id=${encodeURIComponent(FP.envId)}`;
-    }
+   function computeFreshpaintStyleUrl() {
+  const FP = cfg.FRESHPAINT || {};
+  if (!FP.enabled || !FP.envId) return null;
+  const host = (FP.host && FP.host.trim()) || 'https://freshpaint-hipaa-maps.com';
+  const styleKey = FP.style || 'visualization-light';
+  // Correct pattern: https://freshpaint-hipaa-maps.com/{envId}/{style}/style-descriptor
+  return `${host}/${encodeURIComponent(FP.envId)}/${encodeURIComponent(styleKey)}/style-descriptor`;
+}
 
-    async function resolveStyleUrlWithFallback() {
-      const fpUrl = buildFpStyleUrl();
-      const fallback = (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
-      if (!fpUrl) return fallback;
-      try {
-        // HEAD first to avoid downloading full JSON if blocked
-        const head = await fetch(fpUrl, { method: 'HEAD', mode: 'cors', credentials: 'omit' });
-        if (!head.ok) throw new Error(`HEAD ${head.status}`);
-        // Optional quick validate JSON (uncomment if you want full parse)
-        // const res = await fetch(fpUrl, { mode:'cors', credentials:'omit' });
-        // if (!res.ok) throw new Error(`GET ${res.status}`);
-        // await res.json();
-        return fpUrl;
-      } catch (e) {
-        console.warn('[map] Freshpaint style failed or blocked, using fallback:', e);
-        return fallback;
-      }
-    }
+async function resolveStyleUrlWithFallback() {
+  const fpUrl = computeFreshpaintStyleUrl();
+  const fallback = (cfg.MAP && cfg.MAP.style) || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+  if (!fpUrl) return fallback;
 
+  try {
+    // Light HEAD probe so we don’t pull the whole JSON if blocked
+    const head = await fetch(fpUrl, { method: 'HEAD', mode: 'cors', credentials: 'omit' });
+    if (!head.ok) throw new Error(`HEAD ${head.status}`);
+    return fpUrl;
+  } catch (e) {
+    console.warn('[map] Freshpaint style failed or blocked, using fallback:', e);
+    return fallback;
+  }
+}
     // ========= Init & Reset =========
     async function resetAll() {
       $$("#tag-filters input[type=checkbox]").forEach(i=> i.checked = true);
