@@ -23,7 +23,8 @@ window.APP_CONFIG = {
     // Basemap style fallback when Freshpaint is not active
     style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
     iconsByGroup: {
-      "Cobalt": "map-marker-cobalt.png",
+      "Cobalt": "mage.email.intermountainhealth.org/lib/fe2b117170640475771d76/m/1/494266c1-b1e3-4846-8cc2-e7e0f40701a1.png",
+      /*map-marker-cobalt.png*/
       "Coral": "map-marker-coral.png",
       "Dark Blue": "map-marker-darkblue.png",
       "Soft Blue": "map-marker-softblue.png"
