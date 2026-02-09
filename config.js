@@ -7,8 +7,8 @@ window.APP_CONFIG = {
     sheetRange: "Sheet1!A:Z"
   },
   UI: {
-    hideControls: false,
-    hideFilters: false,
+    hideControls: true,
+    hideFilters: true,
     clustering: true,         // set true/false to enable/disable clustering
     scrollZoom: 'ctrl'       // 'ctrl' | 'off' | 'on'
                               //  - 'ctrl' = require Ctrl/Cmd to zoom with wheel
