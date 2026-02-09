@@ -9,7 +9,7 @@ window.APP_CONFIG = {
   UI: {
     hideControls: true,
     hideFilters: true,
-    clustering: false,         // set true/false to enable/disable clustering
+    clustering: true,         // set true/false to enable/disable clustering
     scrollZoom: 'ctrl'       // 'ctrl' | 'off' | 'on'
                               //  - 'ctrl' = require Ctrl/Cmd to zoom with wheel
                               //  - 'off'  = no wheel zoom at all
